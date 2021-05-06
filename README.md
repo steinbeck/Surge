@@ -4,7 +4,7 @@ Surge is a chemical structure generator based on the Nauty package and thereby o
 More precisely, Surge generates all non-isomorphic constitutional isomers of a given molecular formula. 
 
 ## Usage
-Surge is a command line tool. Running `surge -u C10H16O` will generate the 452458 isomers of C<sub>10</sub>H<sub>16</sub>O in 0.1s on some vanilla flavoe year-2021 PC. Running `surge -S C10H16O` outputs those structurs in SMILES format. Further formats supported are SD Files (SDF) and a concise Surge-specific format.  
+Surge is a command line tool. Running `surge -u C10H16O` will generate the 452458 isomers of C<sub>10</sub>H<sub>16</sub>O in 0.1s on some vanilla flavor year-2021 PC. Running `surge -S C10H16O` outputs those structurs in SMILES format. Further formats supported are SD Files (SDF) and a concise Surge-specific format.  
 For large sets of structures, the -z option for compressing the output in gzip format will come in handy. 
 
 `surge -help` will show all options:
