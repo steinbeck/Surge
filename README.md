@@ -40,7 +40,18 @@ Download one of the releases on this GitHub page and run it.
 ### Option 2: Build from source code
 1. Download the latest Nauty release from http://users.cecs.anu.edu.au/~bdm/nauty/ and build it following the instrucations on the page. 
 2. Download surge.c from this GitHub page and put it into the nauty folder 
-3. Compile using the instructions at the beginning of surge.c. 
+3. Compile using the instructions at the beginning of surge.c. The following works on Linux, MacOS as well as with the https://MSYS2.org
+Software Distribution and Building Platform for Windows. The latter was used to build the Windows release of Surge available on the release page. 
+```
+gcc -o surge -O3 -DWORDSIZE=32 -DMAXN=WORDSIZE -DOUTPROC=surgeproc \
+         -DPRUNE=surgeprune -DGENG_MAIN=geng_main surge.c geng.c nautyW1.a
+```
+You can build-in gzip output using the zlib library (https://zlib.net). Add -DZLIB to the compilation, and link with the zlib library eitherby adding -lz or libz.a . This will activate the -z command to gzip the output. The command to compile would then be:
+```
+gcc -o surge -O3 -DWORDSIZE=32 -DMAXN=WORDSIZE -DOUTPROC=surgeproc \
+         -DZLIB -DPRUNE=surgeprune -DGENG_MAIN=geng_main \
+         surge.c geng.c nautyW1.a -lz
+```
 
 ## Misc
 Surge was developed by Brendan McKay with the help of Christoph Steinbeck and Mehmet Aziz Yirik. 
