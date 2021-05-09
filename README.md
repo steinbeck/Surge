@@ -53,6 +53,18 @@ gcc -o surge -O3 -DWORDSIZE=32 -DMAXN=WORDSIZE -DOUTPROC=surgeproc \
          surge.c geng.c nautyW1.a -lz
 ```
 
+### Option 3: Use docker 
+
+First the container needs building:
+```
+docker build -t surge:latest .
+```
+
+Then it can be executed as follows:
+```
+docker run --rm -it surge:latest surge
+```
+
 ## Misc
 Surge was developed by [Brendan McKay](http://users.cecs.anu.edu.au/~bdm) with the help of [Christoph Steinbeck](https://github.com/steinbeck) and [Mehmet Aziz Yirik](https://github.com/mehmetazizyirik). 
 
