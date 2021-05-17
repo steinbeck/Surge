@@ -9,14 +9,15 @@ OBJECTS=surge.o geng.o
 
 GENGC=/usr/share/nauty/geng.c
 
+surge: $(OBJECTS)
+	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
+
 geng.o: $(GENGC)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-surge: $(OBJECTS)
-	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
 
 .PHONY: clean
 

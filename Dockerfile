@@ -13,7 +13,7 @@ RUN apt-get update && \
 
 COPY src /tmp/src
 WORKDIR /tmp/src
-RUN make surge
+RUN make clean ; make surge
 
 FROM ubuntu:21.04
 
