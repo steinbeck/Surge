@@ -23,7 +23,7 @@ RUN make -f ../Makefile clean ; make -f ../Makefile surge
 FROM ubuntu:21.04
 
 RUN apt-get update && \
-    apt-get -y install  curl gnupg zlib1g && \
+    apt-get -y install  curl time gnupg zlib1g && \
     apt-get -y clean && \
     rm -rf \
       /var/lib/apt/lists/* \
