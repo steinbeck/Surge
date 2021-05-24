@@ -107,28 +107,19 @@ The first two numbers indicate the numbers of atoms and bond to follow, i.e. 4 a
     
 Then the bonds are listed with "-" for single, "=" for double and "#" for triple.
 
--O#  This is mostly for debugging purposes. # is a number
-    1, 2 or 3.  For -O1, simple graphs from the initial
-    generation are written in graph6 format. For -O2,
-    labelled simple graphs are written in a format matching
-    the nauty utility vcolg. For example:
-        4 3 2 0 2 0  0 2 0 3 1 3
-    This means 4 atoms, 3 bonds, atom types 0,2,0 and
-    bonds 0-2, 0-3, 1-3. The atom type are
-      C=0, N=1, O=2, P=3, S=4, F=5, Cl=6, Br=7, I=8, B=9.
-    (Bond multiplicities have not been assigned at this stage.)
-    For -O3, fully constructed molecules are written in a
-    format natching the nauty utility multig. It is the same
-    as for -O2 except that bond multiplicities are given
-    (0=single, 1=double, 2=triple). For example:
-        4 3 2 0 2 0  0 2 0 0 3 0 1 3 1
-    Bond (0,2) is single, (0,3) is single, (1,3) is double.
+`-O#`  This is mostly for debugging purposes. # is a number 1, 2 or 3.  For -O1, simple graphs from the initial generation are written in graph6 format. For -O2, labelled simple graphs are written in a format matching the nauty utility vcolg. For example:
+        
+> 4 3 2 0 2 0  0 2 0 3 1 3
+    
+This means 4 atoms, 3 bonds, atom types 0,2,0 and bonds 0-2, 0-3, 1-3. The atom type are C=0, N=1, O=2, P=3, S=4, F=5, Cl=6, Br=7, I=8, B=9. Bond multiplicities have not been assigned at this stage. For `-O3`, fully constructed molecules are written in a format natching the nauty utility multig. It is the same as for `-O2` except that bond multiplicities are given (0=single, 1=double, 2=triple). For example:
 
-If none of -u, -S, -A or -O are given, output is in SDF format.
+> 4 3 2 0 2 0  0 2 0 0 3 0 1 3 1
+   
+Bond (0,2) is single, (0,3) is single, (1,3) is double.
 
--z  Except for the cases of -u and -O1, the output is gzipped.
-   This option is only available if surge has been built
-   with the zlib library.
+If none of `-u`, `-S`, `-A` or `-O` are given, output is in SDF format.
+
+`-z` Except for the cases of -u and -O1, the output is gzipped. This option is only available if surge has been built with the zlib library (see [installation]).
 
 -m#/#   (where each # is a number) This option tells surge to
    do only a part of the generation. If the two numbers are
