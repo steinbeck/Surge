@@ -176,22 +176,14 @@ Four surge options restrict the cycles of the molecule.
 `-B6`  No atom in a ring of length up to 8 has two double bonds.
 ![Forbidden substructure examples for option B6](option-B6.png)
 
-`-B7  These are forbidden: two atoms with four common neighbours,
-     and three atoms with three common neighbours.
-      <needs a picture: Molgen cases 38-39.>
+`-B7`  These are forbidden: two atoms with four common neighbours, and three atoms with three common neighbours.
+![Forbidden substructure examples for option B7](option-B7.png)
 
--B8  These are forbidden: a cycle of length 5 having an atom
-     bonded to each of the other 4 atoms, a set of 4 atoms all
-     bonded to each other sharing one bond with a cycle of length 4.
+`-B8` These are forbidden: a cycle of length 5 having an atom bonded to each of the other 4 atoms, a set of 4 atoms all bonded to each other sharing one bond with a cycle of length 4.
       <needs a picture: Molgen cases 36-37.>
 
--B9  Every atom lies on at most one ring of length 3 or 4.
-     Equivalently, every atom lies on at most one cycle of length
-     3 or 4.
+`-B9`  Every atom lies on at most one ring of length 3 or 4. Equivalently, every atom lies on at most one cycle of length 3 or 4.
       <picture of forbidden possibilities>
-
-================================================================
-
 
 ### Surge I/O
 Surge outputs its results either as SMILES, SD-Files (SDF) or in a Surge-specific concise line notation. Surge output can be piped directly into toolkits such as Openbabel to analyse it or generate images of chemical diagrams.
