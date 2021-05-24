@@ -178,6 +178,7 @@ Four surge options restrict the cycles of the molecule.
 `-B5`  Allow no substructures A=A=A (in ring or not). No atom has two double bonds.
 
 `-B6`  No atom in a ring of length up to 8 has two double bonds.
+
 ![Forbidden substructure examples for option B6](option-B6.png)
 
 `-B7`  These are forbidden: two atoms with four common neighbours, and three atoms with three common neighbours.
