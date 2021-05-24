@@ -84,16 +84,16 @@ Make chemical graphs from a formula.
 
 Options are indicated by a hyphen in the Unix style, such as `-u`.
 
-They can be concatenated or written separately: -u -t0 is the same as -ut0. The exception is the option -oFILE (specify
-output file) where the file name is everything from the "-o" to the end of the option.
+They can be concatenated or written separately: `-u -t0` is the same as `-ut0`. The exception is the option `-oFILE` (specify
+output file) where the file name is everything from the `-o` to the end of the option.
 
-If options have values, they must be written against the option name and not separately: "-t2" is valid but "-t 2" is not.
+If options have values, they must be written against the option name and not separately: `-t2` is valid but `-t 2` is not.
 
 #### Output options.
 
--u  Don't write any molecules; just generate them and report the number.
+`-u`  Don't write any molecules; just generate them and report the number.
 
--oFILE  Specify a file name for output, to be used instead of the standard output. You can specify names with spaces or special characters by using quotes, for example -o'Very Many Molecules.smi'
+`-oFILE`  Specify a file name for output, to be used instead of the standard output. You can specify names with spaces or special characters by using quotes, for example `-o'Very Many Molecules.smi'`
 
 -S  Output in basic SMILES format
 
