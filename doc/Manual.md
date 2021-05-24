@@ -160,7 +160,7 @@ Four surge options restrict the cycles of the molecule.
 
 `-B1`  Rings of length up to 7 have no triple bonds. This is equivalent to cycles of length up to 7 having no triple bonds.
 
-`-B2`  Consider rings of length r and s which share one bond (i.e. fused rings). Let e be the common bond and let f be any bond belonging to one of the rings and sharing one atom with e. In the cases {r,s} = {3,3}, {3,4} and {3,5}, both e and f must be single bonds. In the cases {r,s} = {3,6}, {4,4} and {4,5}, f must be a single bond.
+`-B2`  Forbidden multiple bond locations in ring systems with small rings. Consider rings of length r and s which share one bond (i.e. fused rings). Let e be the common bond and let f be any bond belonging to one of the rings and sharing one atom with e. In the cases {r,s} = {3,3}, {3,4} and {3,5}, both e and f must be single bonds. In the cases {r,s} = {3,6}, {4,4} and {4,5}, f must be a single bond.
 
 ![Forbidden substructure examples for option B2](option-B2.png)
 
