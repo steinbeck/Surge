@@ -180,7 +180,7 @@ Four surge options restrict the cycles of the molecule.
 ![Forbidden substructure examples for option B7](option-B7.png)
 
 `-B8` These are forbidden: a cycle of length 5 having an atom bonded to each of the other 4 atoms, a set of 4 atoms all bonded to each other sharing one bond with a cycle of length 4.
-      <needs a picture: Molgen cases 36-37.>
+![Forbidden substructure examples for option B8](option-B8.png)
 
 `-B9`  Every atom lies on at most one ring of length 3 or 4. Equivalently, every atom lies on at most one cycle of length 3 or 4.
       <picture of forbidden possibilities>
