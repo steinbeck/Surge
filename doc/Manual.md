@@ -138,38 +138,20 @@ As an example, napthalene has two rings of length 6, but three cycles (the two r
 
 Four surge options restrict the cycles of the molecule.
 
--t#  or  -t#:#  (where each # is a number) Specify the 
-   allowed number of cycles of length 3. For example,
-   -t0  or  -t1:3 .
+`-t#`  or  `-t#:#`  (where each # is a number) Specify the allowed number of cycles of length 3. For example, `-t0`  or  `-t1:3`.
 
--f#  or  -f#:#  (where each # is a number) Specify the 
-   allowed number of cycles of length 4. For example,
-   -f0  or  -f1:3 .
+`-f#`  or  `-f#:#`  (where each # is a number) Specify the allowed number of cycles of length 4. For example, `-f0`  or  `-f1:3`.
 
--p#  or  -p#:#  (where each # is a number) Specify the 
-   allowed number of cycles of length 5. For example,
-   -p0  or  -p1:3 .
+`-p#`  or  `-p#:#`  (where each # is a number) Specify the allowed number of cycles of length 5. For example, `-p0`  or  `-p1:3`.
 
--b  Specify that no cycles of odd length are permitted.
-   A simple exercise is that there is a cycle of odd
-   length if and only if there is a ring of odd length,
-   so an equivalent description is that no rings of odd
-   length are permitted. (In graph theory language, the
-   graph is bipartite.)
+`-b`  Specify that no cycles of odd length are permitted. A simple exercise is that there is a cycle of odd length if and only if there is a ring of odd length, so an equivalent description is that no rings of odd length are permitted. (In graph theory language, the graph is bipartite.)
 
-================================================================
+#### Other global structural restrictions
 
-Other global structural restrictions
+`-e#`  or  `-e#:#`  (where each # is a number) Specify the allowed number of bonds. Bonds are counted without regard to their multiplicity. Examples: `-e15`  or `-e12:13`. If the number of atoms is n and the number of bonds is e, then e - n + 1 is the minimum number of bonds that need to be broken to reach an acyclic structure.
 
--e#  or  -e#:#  (where each # is a number) Specify the
-   allowed number of bonds. Bonds are counted without
-   regard to their multiplicity. Examples: -e15  or -e12:13 .
-   If the number of atoms is n and the number of bonds is e,
-   then e - n + 1 is the minimum number of bonds that need
-   to be broken to reach an acyclic structure.
-
+`-P`  Require that the molecule be planar. That is, it can be drawn in the plane with no bonds crossing.
 -P  Require that the molecule be planar. That is, it can
-   be drawn in the plane with no bonds crossing.
 
 ================================================================
 
