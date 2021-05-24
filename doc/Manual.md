@@ -168,14 +168,15 @@ Four surge options restrict the cycles of the molecule.
 ![Forbidden substructure examples for option B3](option-B3.png)
 
 `-B4` Obey Bredt's rule for two rings of length 6 sharing three bonds. Consider two rings of length 6 that share three bonds. Then any bond which lies in one of the rings and has an atom in the other ring must be a single bond.
+
 ![Forbidden substructure examples for option B4](option-B4.png)
 
 `-B5`  Allow no substructures A=A=A (in ring or not). No atom has two double bonds.
 
--B6  No atom in a ring of length up to 8 has two double bonds.
-      <needs a picture: Molgen cases 6-11.>
+`-B6`  No atom in a ring of length up to 8 has two double bonds.
+![Forbidden substructure examples for option B6](option-B6.png)
 
--B7  These are forbidden: two atoms with four common neighbours,
+`-B7  These are forbidden: two atoms with four common neighbours,
      and three atoms with three common neighbours.
       <needs a picture: Molgen cases 38-39.>
 
