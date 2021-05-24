@@ -161,15 +161,11 @@ Four surge options restrict the cycles of the molecule.
 `-B1`  Rings of length up to 7 have no triple bonds. This is equivalent to cycles of length up to 7 having no triple bonds.
 
 `-B2`  Consider rings of length r and s which share one bond (i.e. fused rings). Let e be the common bond and let f be any bond belonging to one of the rings and sharing one atom with e. In the cases {r,s} = {3,3}, {3,4} and {3,5}, both e and f must be single bonds. In the cases {r,s} = {3,6}, {4,4} and {4,5}, f must be a single bond.
+
 ![Forbidden substructure examples for option B2](option-B2.png)
 
--B3  Consider rings of length r and s which share two bonds.
-    Let e be one of the shared bonds and let f be a bond
-    belonging to one of the rings and sharing one atom
-    with e.
-    In the cases {r,s} = {4,4}, {4,5}, {4,6}, {5,5} and {5,6},
-    both e and f must be single bonds.
-      <needs a picture: Molgen cases 25-34.>
+`-B3`  Consider rings of length r and s which share two bonds. Let e be one of the shared bonds and let f be a bond belonging to one of the rings and sharing one atom with e. In the cases {r,s} = {4,4}, {4,5}, {4,6}, {5,5} and {5,6}, both e and f must be single bonds.
+![Forbidden substructure examples for option B3](option-B3.png)
 
 -B4  Consider two rings of length 6 that share three bonds.
     Then any bond which lies in one of the rings and has
