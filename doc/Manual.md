@@ -119,42 +119,22 @@ Bond (0,2) is single, (0,3) is single, (1,3) is double.
 
 If none of `-u`, `-S`, `-A` or `-O` are given, output is in SDF format.
 
-`-z` Except for the cases of -u and -O1, the output is gzipped. This option is only available if surge has been built with the zlib library (see [installation]).
+`-z` Except for the cases of -u and -O1, the output is gzipped. This option is only available if surge has been built with the zlib library (see [Installation](#installation)).
 
--m#/#   (where each # is a number) This option tells surge to
-   do only a part of the generation. If the two numbers are
-   res and mod, respectively, it must be that 0 <= res <= mod-1.
-   For example, to split the generation into five parts
-   which can be run independently, use
-        -m0/5, -m1/5, -m2/5, -m3/5 and -m4/5
-   respectively on the parts.  The overhead in this splitting
-   is very low. However, if the number of parts is large some
-   of the parts may be a lot bigger than others.
+`-m#/#` (where each # is a number) This option tells surge to do only a part of the generation. If the two numbers are res and mod, respectively, it must be that 0 <= res <= mod-1. For example, to split the generation into five parts which can be run independently, use `-m0/5`, `-m1/5`, `-m2/5`, `-m3/5` and `-m4/5` respectively on the parts.  The overhead in this splitting is very low. However, if the number of parts is large some of the parts may be a lot bigger than others.
 
--v  Write some additional statistics to standard error.
+`-v`  Write some additional statistics to standard error (STDERR).
 
-================================================================
+#### Rings and cycles.
 
-Rings and cycles.
+Our description of surge options takes care to distinguish two types of closed path, which we call "rings" and "cycles". A cycle is a closed path that does not repeat any atom except that it finishes on the same atom it started on.
 
-Our description of surge options takes care to distinguish two
-types of closed path, which we call "rings" and "cycles".
-
-A cycle is a closed path that does not repeat any atom except
-that it finishes on the same atom it started on.
-
-A ring is a cycle with the additional restriction that there is
-no bond between any of its atoms apart from the bonds forming
-the cycle. (In graph theory language, a ring is a chordless
-cycle, also known as an induced cycle.)
+A ring is a cycle with the additional restriction that there is no bond between any of its atoms apart from the bonds forming the cycle. (In graph theory language, a ring is a chordless cycle, also known as an induced cycle.)
 
 Every ring is a cycle, but a cycle may or may not be a ring.
 
-As an example, napthalene has two rings of length 6, but three
-cycles (the two rings, plus a cycle of length 10).  The cycle
-of length 10 is not a ring because of the extra bond between
-two of its atoms.  
-         <picture of napthelene>
+As an example, napthalene has two rings of length 6, but three cycles (the two rings, plus a cycle of length 10). The cycle of length 10 is not a ring because of the extra bond between two of its atoms. Cheminformaticians would hold a different view on this and distinguish between the Smallest Set of Smallest Rings and the Set of All Rings.  
+![Image of Napthalene](naphtalene.png)
 
 Four surge options restrict the cycles of the molecule.
 
