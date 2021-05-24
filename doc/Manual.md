@@ -200,3 +200,6 @@ surge -S C6H6 | obabel -i smi - -o png -xp 1000 > test.png
 ```
 
 for example, generates a 1000x1000 pixel image of the 217 isomers of benzene.
+  
+  
+![All isomers of C6H6](C6H6.png)
