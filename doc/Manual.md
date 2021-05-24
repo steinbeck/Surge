@@ -57,10 +57,11 @@ Make chemical graphs from a formula.
   -u    Just count, don't write
   -e# -e#:#  Restrict to given range of distinct bonds
   -t# -t#:#  Limit number of rings of length 3
-  -f# -f#:#  Limit number of rings of length 4
-  -p# -p#:#  Limit number of rings of length 5
-  -b    Only rings of even length
+  -f# -f#:#  Limit number of cycles of length 4
+  -p# -p#:#  Limit number of cycles of length 5
+  -b    Only rings of even length (same as only cycles of even length)
   -T    Disallow triple bonds
+  -P    Require planarity
   -B#,...,# Specify sets of substructures to avoid
      1 = no triple bonds in rings up to length 7
      2 = Bredt's rule for two rings ij with one bond in
@@ -81,25 +82,18 @@ Make chemical graphs from a formula.
 
 ### Description of available options
 
-EXPLANATION OF surge OPTIONS (version 0.5)
-
-Options are indicated by a hyphen in the Unix style, such as -u.
+Options are indicated by a hyphen in the Unix style, such as `-u`.
 
 They can be concatenated or written separately: -u -t0 is the same as -ut0. The exception is the option -oFILE (specify
 output file) where the file name is everything from the "-o" to the end of the option.
 
 If options have values, they must be written against the option name and not separately: "-t2" is valid but "-t 2" is not.
 
-
 #### Output options.
 
--u  Don't write any molecules; just generate them and
-   report the number.
+-u  Don't write any molecules; just generate them and report the number.
 
--oFILE  Specify a file name for output, to be used instead
-   of the standard output. You can specify names with
-   spaces or special characters by using quotes, for example
-   -o'Very Many Molecules.smi'
+-oFILE  Specify a file name for output, to be used instead of the standard output. You can specify names with spaces or special characters by using quotes, for example -o'Very Many Molecules.smi'
 
 -S  Output in basic SMILES format
 
