@@ -151,20 +151,12 @@ Four surge options restrict the cycles of the molecule.
 `-e#`  or  `-e#:#`  (where each # is a number) Specify the allowed number of bonds. Bonds are counted without regard to their multiplicity. Examples: `-e15`  or `-e12:13`. If the number of atoms is n and the number of bonds is e, then e - n + 1 is the minimum number of bonds that need to be broken to reach an acyclic structure.
 
 `-P`  Require that the molecule be planar. That is, it can be drawn in the plane with no bonds crossing.
--P  Require that the molecule be planar. That is, it can
 
-================================================================
+#### Forbidden substructures
 
-Forbidden substructures
+`-T`  Forbid triple bonds
 
--T  Forbid triple bonds
-
--Blist  Forbid sets of substructures.  The argument of -B is a
-    list of numbers separated by commas without spaces. For
-    example,  -B2,3,8  Each number indicates a set of substructures
-    that are forbidden.  You can use -B more than once, for
-    example  -B2,4,6 is the same as -B4 -B6,2 .  We will describe
-    the meaning of each number separately.
+`-Blist` Forbid sets of substructures.  The argument of -B is a list of numbers separated by commas without spaces. For example, in `-B2,3,8`each number indicates a set of substructures that are forbidden (for the meaning of those numbers, read on). You can use `-B` more than once, for example `-B2,4,6` is the same as `-B4 -B6,2`. We will describe the meaning of each number in the following.  
 
 -B1  Rings of length up to 7 have no triple bonds.  This is
     equivalent to cycles of length up to 7 having no triple bonds.
