@@ -158,18 +158,10 @@ Four surge options restrict the cycles of the molecule.
 
 `-Blist` Forbid sets of substructures.  The argument of -B is a list of numbers separated by commas without spaces. For example, in `-B2,3,8`each number indicates a set of substructures that are forbidden (for the meaning of those numbers, read on). You can use `-B` more than once, for example `-B2,4,6` is the same as `-B4 -B6,2`. We will describe the meaning of each number in the following.  
 
--B1  Rings of length up to 7 have no triple bonds.  This is
-    equivalent to cycles of length up to 7 having no triple bonds.
+`-B1`  Rings of length up to 7 have no triple bonds. This is equivalent to cycles of length up to 7 having no triple bonds.
 
--B2  Consider rings of length r and s which share one bond
-     (i.e. fused rings). Let e be the common bond and let f be
-    any bond belonging to one of the rings and sharing one atom
-    with e.
-    In the cases {r,s} = {3,3}, {3,4} and {3,5}, both e and f
-    must be single bonds.
-    In the cases {r,s} = {3,6}, {4,4} and {4,5}, f must be a
-    single bond.
-      <needs a picture: Molgen cases 12-24.>
+`-B2`  Consider rings of length r and s which share one bond (i.e. fused rings). Let e be the common bond and let f be any bond belonging to one of the rings and sharing one atom with e. In the cases {r,s} = {3,3}, {3,4} and {3,5}, both e and f must be single bonds. In the cases {r,s} = {3,6}, {4,4} and {4,5}, f must be a single bond.
+![Forbidden substructure examples for option B2](option-B2.png)
 
 -B3  Consider rings of length r and s which share two bonds.
     Let e be one of the shared bonds and let f be a bond
