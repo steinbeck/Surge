@@ -5,8 +5,12 @@
    * [Introduction](#introduction)
    * [Installation](#installation)
    * [Usage](#usage)
+      * [Description of available options](#description-of-available-options)
+         * [Output options.](#output-options)
+         * [Rings and cycles.](#rings-and-cycles)
+         * [Other global structural restrictions](#other-global-structural-restrictions)
+         * [Forbidden substructures (Badlist)](#forbidden-substructures-badlist)
       * [Surge I/O](#surge-io)
-      * [Badlists](#badlists)
 
 ## Introduction
 Surge generates all chemical structures which share a given molecular formula, such as C<sub>10</sub>H<sub>16</sub>O. In the case of C<sub>10</sub>H<sub>16</sub>O, there are 452458 such structures.
@@ -196,3 +200,6 @@ surge -S C6H6 | obabel -i smi - -o png -xp 1000 > test.png
 ```
 
 for example, generates a 1000x1000 pixel image of the 217 isomers of benzene.
+  
+  
+![All isomers of C6H6](C6H6.png)
