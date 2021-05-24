@@ -138,64 +138,30 @@ As an example, napthalene has two rings of length 6, but three cycles (the two r
 
 Four surge options restrict the cycles of the molecule.
 
--t#  or  -t#:#  (where each # is a number) Specify the 
-   allowed number of cycles of length 3. For example,
-   -t0  or  -t1:3 .
+`-t#`  or  `-t#:#`  (where each # is a number) Specify the allowed number of cycles of length 3. For example, `-t0`  or  `-t1:3`.
 
--f#  or  -f#:#  (where each # is a number) Specify the 
-   allowed number of cycles of length 4. For example,
-   -f0  or  -f1:3 .
+`-f#`  or  `-f#:#`  (where each # is a number) Specify the allowed number of cycles of length 4. For example, `-f0`  or  `-f1:3`.
 
--p#  or  -p#:#  (where each # is a number) Specify the 
-   allowed number of cycles of length 5. For example,
-   -p0  or  -p1:3 .
+`-p#`  or  `-p#:#`  (where each # is a number) Specify the allowed number of cycles of length 5. For example, `-p0`  or  `-p1:3`.
 
--b  Specify that no cycles of odd length are permitted.
-   A simple exercise is that there is a cycle of odd
-   length if and only if there is a ring of odd length,
-   so an equivalent description is that no rings of odd
-   length are permitted. (In graph theory language, the
-   graph is bipartite.)
+`-b`  Specify that no cycles of odd length are permitted. A simple exercise is that there is a cycle of odd length if and only if there is a ring of odd length, so an equivalent description is that no rings of odd length are permitted. (In graph theory language, the graph is bipartite.)
 
-================================================================
+#### Other global structural restrictions
 
-Other global structural restrictions
+`-e#`  or  `-e#:#`  (where each # is a number) Specify the allowed number of bonds. Bonds are counted without regard to their multiplicity. Examples: `-e15`  or `-e12:13`. If the number of atoms is n and the number of bonds is e, then e - n + 1 is the minimum number of bonds that need to be broken to reach an acyclic structure.
 
--e#  or  -e#:#  (where each # is a number) Specify the
-   allowed number of bonds. Bonds are counted without
-   regard to their multiplicity. Examples: -e15  or -e12:13 .
-   If the number of atoms is n and the number of bonds is e,
-   then e - n + 1 is the minimum number of bonds that need
-   to be broken to reach an acyclic structure.
+`-P`  Require that the molecule be planar. That is, it can be drawn in the plane with no bonds crossing.
 
--P  Require that the molecule be planar. That is, it can
-   be drawn in the plane with no bonds crossing.
+#### Forbidden substructures
 
-================================================================
+`-T`  Forbid triple bonds
 
-Forbidden substructures
+`-Blist` Forbid sets of substructures.  The argument of -B is a list of numbers separated by commas without spaces. For example, in `-B2,3,8`each number indicates a set of substructures that are forbidden (for the meaning of those numbers, read on). You can use `-B` more than once, for example `-B2,4,6` is the same as `-B4 -B6,2`. We will describe the meaning of each number in the following.  
 
--T  Forbid triple bonds
+`-B1`  Rings of length up to 7 have no triple bonds. This is equivalent to cycles of length up to 7 having no triple bonds.
 
--Blist  Forbid sets of substructures.  The argument of -B is a
-    list of numbers separated by commas without spaces. For
-    example,  -B2,3,8  Each number indicates a set of substructures
-    that are forbidden.  You can use -B more than once, for
-    example  -B2,4,6 is the same as -B4 -B6,2 .  We will describe
-    the meaning of each number separately.
-
--B1  Rings of length up to 7 have no triple bonds.  This is
-    equivalent to cycles of length up to 7 having no triple bonds.
-
--B2  Consider rings of length r and s which share one bond
-     (i.e. fused rings). Let e be the common bond and let f be
-    any bond belonging to one of the rings and sharing one atom
-    with e.
-    In the cases {r,s} = {3,3}, {3,4} and {3,5}, both e and f
-    must be single bonds.
-    In the cases {r,s} = {3,6}, {4,4} and {4,5}, f must be a
-    single bond.
-      <needs a picture: Molgen cases 12-24.>
+`-B2`  Consider rings of length r and s which share one bond (i.e. fused rings). Let e be the common bond and let f be any bond belonging to one of the rings and sharing one atom with e. In the cases {r,s} = {3,3}, {3,4} and {3,5}, both e and f must be single bonds. In the cases {r,s} = {3,6}, {4,4} and {4,5}, f must be a single bond.
+![Forbidden substructure examples for option B2](option-B2.png)
 
 -B3  Consider rings of length r and s which share two bonds.
     Let e be one of the shared bonds and let f be a bond
