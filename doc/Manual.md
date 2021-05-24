@@ -98,13 +98,14 @@ If options have values, they must be written against the option name and not sep
 `-S`  Output in basic SMILES format
 
 `-A`  Output in "alphabetic format", which looks like this 
+
 >4 3 C2O2H4 2-3 1-2 0=1
 
 The first two numbers indicate the numbers of atoms and bond to follow, i.e. 4 atoms and 3 bonds in this example. The atoms are numbered in the order they appear in the name     
 
->0=C, 1=C, 2=O, 3=O.
+>0=C, 1=C, 2=O, 3=O
     
-    Then the bonds are listed with "-" for single, "=" for double and "#" for triple.
+Then the bonds are listed with "-" for single, "=" for double and "#" for triple.
 
 -O#  This is mostly for debugging purposes. # is a number
     1, 2 or 3.  For -O1, simple graphs from the initial
