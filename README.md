@@ -55,14 +55,15 @@ Download one of the releases on this GitHub page and run it.
 3. Compile using the instructions at the beginning of surge.c. The following works on Linux, MacOS as well as with the https://MSYS2.org
 Software Distribution and Building Platform for Windows. The latter was used to build the Windows release of Surge available on the [release page](https://github.com/steinbeck/Surge/releases) .
 ```
-gcc -o surge -O3 -mpopcnt -march=native -DWORDSIZE=32 -DMAXN=WORDSIZE -DOUTPROC=surgeproc \
-         -DPRUNE=surgeprune -DGENG_MAIN=geng_main surge.c geng.c nautyW1.a
+gcc  -o surge -g -O3 -DWORDSIZE=32 -DMAXN=WORDSIZE -DOUTPROC=surgeproc \
+  -march=native -DPRUNE=surgeprune -DGENG_MAIN=geng_main \
+  -DZLIB -DPREPRUNE=surgepreprune surge.c geng.c planarity.c nautyW1.a 
 ```
 You can build-in gzip output using the zlib library (https://zlib.net). Add -DZLIB to the compilation, and link with the zlib library eitherby adding -lz or libz.a . This will activate the -z command to gzip the output. The command to compile would then be:
 ```
-gcc -o surge -O3 -mpopcnt -march=native -DWORDSIZE=32 -DMAXN=WORDSIZE -DOUTPROC=surgeproc \
-         -DZLIB -DPRUNE=surgeprune -DGENG_MAIN=geng_main \
-         surge.c geng.c nautyW1.a -lz
+gcc  -o surge -g -O3 -DWORDSIZE=32 -DMAXN=WORDSIZE -DOUTPROC=surgeproc \
+  -march=native -DPRUNE=surgeprune -DGENG_MAIN=geng_main \
+  -DZLIB -DPREPRUNE=surgepreprune surge.c geng.c planarity.c nautyW1.a -lz
 ```
 
 ## Misc
