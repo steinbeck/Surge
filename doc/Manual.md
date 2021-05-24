@@ -152,7 +152,7 @@ Four surge options restrict the cycles of the molecule.
 
 `-P`  Require that the molecule be planar. That is, it can be drawn in the plane with no bonds crossing.
 
-#### Forbidden substructures
+#### Forbidden substructures (Badlist)
 
 `-T`  Forbid triple bonds
 
@@ -177,9 +177,11 @@ Four surge options restrict the cycles of the molecule.
 ![Forbidden substructure examples for option B6](option-B6.png)
 
 `-B7`  These are forbidden: two atoms with four common neighbours, and three atoms with three common neighbours.
+
 ![Forbidden substructure examples for option B7](option-B7.png)
 
 `-B8` These are forbidden: a cycle of length 5 having an atom bonded to each of the other 4 atoms, a set of 4 atoms all bonded to each other sharing one bond with a cycle of length 4.
+
 ![Forbidden substructure examples for option B8](option-B8.png)
 
 `-B9`  Every atom lies on at most one ring of length 3 or 4. Equivalently, every atom lies on at most one cycle of length 3 or 4.
@@ -194,5 +196,3 @@ surge -S C6H6 | obabel -i smi - -o png -xp 1000 > test.png
 ```
 
 for example, generates a 1000x1000 pixel image of the 217 isomers of benzene.
-
-### Badlists
