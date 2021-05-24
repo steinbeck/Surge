@@ -168,29 +168,22 @@ Four surge options restrict the cycles of the molecule.
 ![Forbidden substructure examples for option B3](option-B3.png)
 
 `-B4` Obey Bredt's rule for two rings of length 6 sharing three bonds. Consider two rings of length 6 that share three bonds. Then any bond which lies in one of the rings and has an atom in the other ring must be a single bond.
+
 ![Forbidden substructure examples for option B4](option-B4.png)
 
 `-B5`  Allow no substructures A=A=A (in ring or not). No atom has two double bonds.
 
--B6  No atom in a ring of length up to 8 has two double bonds.
-      <needs a picture: Molgen cases 6-11.>
+`-B6`  No atom in a ring of length up to 8 has two double bonds.
+![Forbidden substructure examples for option B6](option-B6.png)
 
--B7  These are forbidden: two atoms with four common neighbours,
-     and three atoms with three common neighbours.
-      <needs a picture: Molgen cases 38-39.>
+`-B7`  These are forbidden: two atoms with four common neighbours, and three atoms with three common neighbours.
+![Forbidden substructure examples for option B7](option-B7.png)
 
--B8  These are forbidden: a cycle of length 5 having an atom
-     bonded to each of the other 4 atoms, a set of 4 atoms all
-     bonded to each other sharing one bond with a cycle of length 4.
+`-B8` These are forbidden: a cycle of length 5 having an atom bonded to each of the other 4 atoms, a set of 4 atoms all bonded to each other sharing one bond with a cycle of length 4.
       <needs a picture: Molgen cases 36-37.>
 
--B9  Every atom lies on at most one ring of length 3 or 4.
-     Equivalently, every atom lies on at most one cycle of length
-     3 or 4.
+`-B9`  Every atom lies on at most one ring of length 3 or 4. Equivalently, every atom lies on at most one cycle of length 3 or 4.
       <picture of forbidden possibilities>
-
-================================================================
-
 
 ### Surge I/O
 Surge outputs its results either as SMILES, SD-Files (SDF) or in a Surge-specific concise line notation. Surge output can be piped directly into toolkits such as Openbabel to analyse it or generate images of chemical diagrams.
