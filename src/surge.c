@@ -1,11 +1,12 @@
 /* This is a rough draft of a molecule generator based on geng.
-   Version 0.4, May 16 2021.
+   Version 0.5, May 22 2021.
 
    Unix-style compilation command would be:
 
      gcc -o surge -O3 -DWORDSIZE=32 -DMAXN=WORDSIZE -DOUTPROC=surgeproc \
-         -march=native -mtune=native \
-         -DPRUNE=surgeprune -DGENG_MAIN=geng_main surge.c geng.c nautyW1.a
+         -march=native -mtune=native -DPREPRUNE=surgepreprune \
+         -DPRUNE=surgeprune -DGENG_MAIN=geng_main \
+         surge.c geng.c planarity.c nautyW1.a
 
    You can build-in gzip output using the zlib library (https://zlib.net).
    Add -DZLIB to the compilation, and link with the zlib library either
@@ -13,18 +14,19 @@
    the output.
 
      gcc -o surge -O3 -DWORDSIZE=32 -DMAXN=WORDSIZE -DOUTPROC=surgeproc \
-         -DZLIB -DPRUNE=surgeprune -DGENG_MAIN=geng_main \
-         -march=native -mtune=native \
-         surge.c geng.c nautyW1.a -lz
+         -march=native -mtune=native -DPREPRUNE=surgepreprune -DZLIB \
+         -DPRUNE=surgeprune -DGENG_MAIN=geng_main \
+         surge.c geng.c planarity.c nautyW1.a -lz
 
 ***********************************************************************/
 
 /**************TODO****************************************
-* Bounds on vertices of degree 4
+* Bounds on the number of vertices of degree 1 and 4
 * Option to make all replacements of equivalent atoms
 * Figure out twins that are not leaves
 * Nitrogen@5 and similar variations
-* Planarity option -P
+* Determine interaction of -P with -t,-f,-p
+* Test PRUNE functions for efficiency as PREPRUNE
 **********************************************************/
 
 #ifdef ZLIB
@@ -48,10 +50,11 @@
 "  -u    Just count, don't write\n" \
 "  -e# -e#:#  Restrict to given range of distinct bonds\n" \
 "  -t# -t#:#  Limit number of rings of length 3\n" \
-"  -f# -f#:#  Limit number of rings of length 4\n" \
-"  -p# -p#:#  Limit number of rings of length 5\n" \
-"  -b    Only rings of even length\n" \
+"  -f# -f#:#  Limit number of cycles of length 4\n" \
+"  -p# -p#:#  Limit number of cycles of length 5\n" \
+"  -b    Only rings of even length (same as only cycles of even length)\n" \
 "  -T    Disallow triple bonds\n" \
+"  -P    Require planarity\n" \
 "  -B#,...,# Specify sets of substructures to avoid\n" \
 "     1 = no triple bonds in rings up to length 7\n" \
 "     2 = Bredt's rule for two rings ij with one bond in\n" \
@@ -69,14 +72,16 @@
 "  -oFILE Write the output to the given file rather than to stdout.\n" \
 "  -z     Write output in gzip format (only if compiled with zlib)\n"
 
-/* Undocumented as dangerous:
+/* Undocumented options:
   -G...  Anything to the end of the parameter is passed to geng
+  -x     Used for tuning purposes; not useful for users
 */
 
 #define MAXN WORDSIZE    /* Not bigger than WORDSIZE, which can be 32 or 64 */
-#define MAXE (2*MAXN)
+#define MAXNE (2*MAXN)
 #include "gtools.h"
 #include "naugroup.h"
+#include "planarity.h"
 #include <ctype.h>
 #ifdef ZLIB
 #include "zlib.h"
@@ -112,7 +117,7 @@ static struct smilesstruct
 {
     int item;
     int x,y,r;
-} smilesskeleton[4*MAXN+6*MAXE];
+} smilesskeleton[4*MAXN+6*MAXNE];
 /* Values for the item field */
 #define SM_ATOM  1  /* Atom number x */
 #define SM_BOND  2  /* Bond x,y */
@@ -172,6 +177,9 @@ static int outlevel;  /* 1 = geng only, 2 = geng+vcolg,
 static boolean smiles;  /* output in SMILES format */
 static int maxbond;  /* maximum mult -1 of bonds (1 if -t, else 2) */
 
+static boolean planar;  /* Molecules must be planar */
+static boolean xswitch;  /* Undocumented */
+
 /* In the following, the counts are only meaningful if the
    corresponding boolean is true. */
 static boolean tswitch;
@@ -207,7 +215,7 @@ typedef struct edge
     setword xy;
 } edgetype;
 static int numedges;
-static edgetype edge[MAXE];
+static edgetype edge[MAXNE];
 static int edgenumber[MAXN][MAXN]; 
 
 static FILE *outfile;
@@ -287,11 +295,111 @@ program with WORDSIZE=64 if you really need to). */
 
 /******************************************************************/
 
+static boolean
+isplanar(graph *g, int n)
+/* Check if g is planar, assuming g is connected */
+{
+    t_ver_sparse_rep V[MAXN];
+    t_adjl_sparse_rep A[2*MAXNE+1];
+    t_dlcl **dfs_tree,**back_edges,**mult_edges;
+    t_ver_edge *embed_graph;
+    int i,j,k,pop,nv,ne,c;
+    int edge_pos,v,w;
+    setword ww;
+    boolean ans;
+    graph h[MAXN];
+    int newlab[MAXN];
+    setword queue;
+
+    queue = 0;
+    ne = 0;
+    for (i = 0; i < n; ++i)
+    {
+	h[i] = g[i];
+	pop = POPCOUNT(h[i]);
+	ne += pop;
+	if (pop <= 2) queue |= bit[i];
+    }
+    ne /= 2;
+    nv = n;
+
+    while (queue && ne >= nv+3)
+    {
+	TAKEBIT(i,queue);
+	pop = POPCOUNT(h[i]);
+	if (pop == 1)  /* i--j with deg(i)=1 */
+	{
+	    j = FIRSTBITNZ(h[i]);
+	    h[i] = 0;
+	    h[j] &= ~bit[i];
+	    --nv;
+	    --ne;
+	    queue |= bit[j];
+	}
+	else if (pop == 2)  /* j--i--k with deg(i)=2 */
+	{
+	    j = FIRSTBITNZ(h[i]);
+	    k = FIRSTBITNZ(h[i] & ~bit[j]);
+	    h[i] = 0;
+	    h[j] &= ~bit[i];
+	    h[k] &= ~bit[i];
+	    --nv;
+	    if ((h[j] & bit[k]))
+	    {
+		ne -= 2;
+		queue |= (bit[j] | bit[k]);
+	    }
+	    else
+	    {
+		--ne;
+		h[j] |= bit[k];
+		h[k] |= bit[j];
+	    }
+	}
+    }
+
+    if (ne <= nv + 2) return TRUE;
+    if (nv == 5 && ne <= 9) return TRUE;
+
+    nv = 0;
+    for (i = 0; i < n; ++i) if (h[i] != 0) newlab[i] = nv++;
+
+    k = 0;
+    for (i = 0; i < n; ++i)
+    if (h[i] != 0)
+    {
+	V[newlab[i]].first_edge = k;
+	ww = h[i];
+	while (ww)
+	{
+	    TAKEBIT(j,ww);
+	    A[k].end_vertex = newlab[j];
+	    A[k].next = k+1;
+	    ++k;
+	}
+	A[k-1].next = NIL;
+    }
+
+    ne = k/2;
+
+    ans = sparseg_adjl_is_planar(V,nv,A,&c,&dfs_tree,&back_edges,
+             &mult_edges,&embed_graph,&edge_pos,&v,&w);
+
+    sparseg_dlcl_delete(dfs_tree,nv);
+    sparseg_dlcl_delete(back_edges,nv);
+    sparseg_dlcl_delete(mult_edges,nv);
+    embedg_VES_delete(embed_graph,nv);
+
+    return ans;
+} 
+
+/******************************************************************/
+
 static void
 SMILESoutput(int *vcol, int n, int *mult, int ne)
 /* Write molecules in SMILES format */
 {
-    char *p,line[20*MAXE];
+    char *p,line[20*MAXNE];
     int i,x,y,r,m;
 
     p = line;
@@ -670,8 +778,8 @@ colouredges(graph *g, int *vcol, int n)
 {
     int def[MAXN];  /* Remaining degree of vertex */
     int i,j,k,ne;
-    int mult[MAXE];
-    int prev[MAXE]; /* If >= 0, earlier point that must have greater colour */
+    int mult[MAXNE];
+    int prev[MAXNE]; /* If >= 0, earlier point that must have greater colour */
     int needed;  /* Extra edges needed */
     int iter[FORMULALEN];
 
@@ -681,6 +789,8 @@ colouredges(graph *g, int *vcol, int n)
 	def[i] = atom[atomtype[vcol[i]]].valence - POPCOUNT(g[i]);
 
     needed = (valencesum - hydrogens)/2 - ne;  /* Extra edges needed */
+
+    if (ne == 0 && needed > 0) return;
 
     if (alphabetic)
     {
@@ -958,6 +1068,7 @@ colourvertices(graph *g, int n)
     if (numtypes == 1)
     {
 	for (i = 0; i < n; ++i) vcol[i] = 0;
+	++vcolgout;
 	colouredges(g,vcol,n);
 	return;
     }
@@ -973,9 +1084,47 @@ colourvertices(graph *g, int n)
 
 /******************************************************************/
 
+extern int geng_maxe;
+
+int
+surgepreprune(graph *g, int n, int maxn)
+/* This function is called by the PREPRUNE service of geng.
+ It speeds up the generation of connected graphs. */
+{
+    setword notvisited,queue;
+    int ne,nc,i;
+
+    if (n == maxn || geng_maxe - maxn >= 5) return 0;
+
+    ne = 0;
+    for (i = 0; i < n; ++i) ne += POPCOUNT(g[i]);
+    ne /= 2;
+
+    nc = 0;
+    notvisited = ALLMASK(n);
+
+    while (notvisited)
+    {
+        ++nc;
+        queue = SWHIBIT(notvisited);
+        notvisited &= ~queue;
+        while (queue)
+        {
+            TAKEBIT(i,queue);
+            notvisited &= ~bit[i];
+            queue |= g[i] & notvisited;
+        }
+    }
+
+    if (ne - n + nc > geng_maxe - maxn + 1) return 1;
+
+    return 0;
+}
+
 int
 surgeprune(graph *g, int n, int nmax)
-/* This is a procedure that geng will call at each level.
+/* This is a procedure that geng will call at each level
+using the PRUNE service.
 The options -t, -f, -p, -B7,8,9 are implemented here by
 incrementally updating the required counts. */
 {
@@ -1220,7 +1369,7 @@ static void
 makesmilesskeleton(graph *g, int n)
 /* Make a skeleton SMILES structure for use in SMILESoutput */
 {
-    struct smilesstruct smilestemp[4*MAXN+6*MAXE];
+    struct smilesstruct smilestemp[4*MAXN+6*MAXNE];
     graph back[MAXN],ring[MAXN];
     setword w,seen;
     int len,ringnumber;
@@ -1407,10 +1556,12 @@ surgeproc(FILE *outfile, graph *gin, int n)
 	else             { ++n34; ++n4; }
     }
 
-    if (n1 >= min1 && n12 >= min12 && n34 <= max34 && n4 <= max4)
-	++genggood;
-    else
+    if (n > 1 && (n1 < min1 || n12 < min12 || n34 > max34 || n4 > max4))
 	return;
+
+    if (planar && !isplanar(gin,n)) return;
+
+    ++genggood;
 
    /* Reverse to put higher degrees first */
 
@@ -1425,10 +1576,6 @@ surgeproc(FILE *outfile, graph *gin, int n)
 	}
 	g[i] = pw;
     }
-
-   /* Make a SMILES skeleton structure for later use */
-
-    if (smiles) makesmilesskeleton(g,n);
 
    /* Make the edge list for later use */
 
@@ -1614,11 +1761,8 @@ surgeproc(FILE *outfile, graph *gin, int n)
 	return;
     }
 
-#if 0
-    for (i = 0; i < ne; ++i) printf(" %d:%d-%d/%d,%d",
-      i,edge[i].x,edge[i].y,edge[i].allenemate1,edge[i].allenemate2);
-    printf("\n");
-#endif
+   /* Make a SMILES skeleton structure for later use */
+    if (smiles) makesmilesskeleton(g,n);
 
     colourvertices(g,n);
 }
@@ -1737,7 +1881,7 @@ decode_formula(char *formula, int *nv, int *mine, int *maxe, int *maxd)
 
     fprintf(stderr,"  nv=%d edges=%d-%d DBE=%d maxd=%d\n",
             *nv,*mine,*maxe,dbe,*maxd);
-    if (*maxe > MAXE) gt_abort(">E surge : too many edges\n");
+    if (*maxe > MAXNE) gt_abort(">E surge : too many edges\n");
 
     for (d = 1; d <= *maxd; ++d)
     {
@@ -1774,6 +1918,8 @@ start_geng(int maxd, int n,
     if (numtypes == 1 && atom[atomtype[0]].valence == 4
                                      && hydrogens == 0)
 	mind = 2;
+
+    if (n == 1) mind = 0;
 
     sprintf(arga,"-qcd%dD%d",mind,maxd);
     sprintf(argb,"%d",n);
@@ -1847,8 +1993,10 @@ main(int argc, char *argv[])
     uswitch = eswitch = notriples = smiles = FALSE;
     oswitch = gzip = alphabetic = Bswitch = FALSE;
     tswitch = fswitch = pswitch = bipartite = FALSE;
+    planar = xswitch = FALSE;
     Oswitch = FALSE; outlevel = 4;
     extra1 = extra2 = formula = NULL;
+    bad1 = bad2 = bad3 = bad4 = bad5 = bad6 = bad7 = bad8 = bad9 = FALSE;
 
     for (j = 1; !badargs && j < argc; ++j)
     {
@@ -1884,12 +2032,34 @@ main(int argc, char *argv[])
                 else SWBOOLEAN('z',gzip)
                 else SWBOOLEAN('A',alphabetic)
                 else SWBOOLEAN('b',bipartite)
+                else SWBOOLEAN('P',planar)
+                else SWBOOLEAN('x',xswitch)
 		else SWSEQUENCEMIN('B',",",Bswitch,badlist,1,BADLISTS,badlen,"surge -B")
                 else SWRANGE('e',":-",eswitch,eminval,emaxval,"surge -e")
                 else SWRANGE('t',":-",tswitch,min3rings,max3rings,"surge -t")
                 else SWRANGE('f',":-",fswitch,min4rings,max4rings,"surge -f")
                 else SWRANGE('p',":-",pswitch,min5rings,max5rings,"surge -p")
                 else badargs = TRUE;
+
+                if (Bswitch)
+                {
+	            for (i = 0; i < badlen; ++i)
+	            {
+	                if (badlist[i] < 1 || badlist[i] > BADLISTS)
+		        gt_abort(">E surge : invalid bad list number\n");
+	                if      (badlist[i] == 1) bad1 = TRUE;
+	                else if (badlist[i] == 2) bad2 = TRUE;
+	                else if (badlist[i] == 3) bad3 = TRUE;
+	                else if (badlist[i] == 4) bad4 = TRUE;
+	                else if (badlist[i] == 5) bad5 = TRUE;
+	                else if (badlist[i] == 6) bad6 = TRUE;
+	                else if (badlist[i] == 7) bad7 = TRUE;
+	                else if (badlist[i] == 8) bad8 = TRUE;
+	                else if (badlist[i] == 9) bad9 = TRUE;
+                          /* Don't forget initialization if you add more */
+	            }
+		    Bswitch = FALSE;
+                }
             }
         }
         else
@@ -1916,26 +2086,6 @@ main(int argc, char *argv[])
     if (!oswitch || (oswitch && strcmp(outfilename,"-") == 0))
         outfilename = "stdout";
 
-    bad1 = bad2 = bad3 = bad4 = bad5 = bad6 = bad7 = bad8 = bad9 = FALSE;
-    if (Bswitch)
-    {
-	for (i = 0; i < badlen; ++i)
-	{
-	    if (badlist[i] < 1 || badlist[i] > BADLISTS)
-		gt_abort(">E surge : invalid bad list number\n");
-	    if      (badlist[i] == 1) bad1 = TRUE;
-	    else if (badlist[i] == 2) bad2 = TRUE;
-	    else if (badlist[i] == 3) bad3 = TRUE;
-	    else if (badlist[i] == 4) bad4 = TRUE;
-	    else if (badlist[i] == 5) bad5 = TRUE;
-	    else if (badlist[i] == 6) bad6 = TRUE;
-	    else if (badlist[i] == 7) bad7 = TRUE;
-	    else if (badlist[i] == 8) bad8 = TRUE;
-	    else if (badlist[i] == 9) bad9 = TRUE;
-         /* Don't forget initialize before loop */
-	}
-    }
-
     if (bad5) bad6 = FALSE;        /* bad6 is a subset of bad5 */
     if (notriples) bad1 = FALSE;
     if (tswitch && fswitch && max3rings+max4rings <= 1)
@@ -1958,6 +2108,8 @@ main(int argc, char *argv[])
 	    gzoutfile = gzopen(outfilename,"wb");
 	if (!gzoutfile)
 	    gt_abort(">E surge : unable to open compressed stream\n");
+	gzbuffer(gzoutfile,1<<16);  /* Remove this line if gzbuffer()
+           is not found; it means you have a old version of zlib. */
 #endif
     }
     else
