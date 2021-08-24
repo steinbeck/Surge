@@ -169,6 +169,7 @@ Four surge options restrict the cycles of the molecule.
 ![Forbidden substructure examples for option B2](option-B2.png)
 
 `-B3`  Obey Bredt's rule for two rings ij with two bonds in common (i,j up to 56). Consider rings of length r and s which share two bonds. Let e be one of the shared bonds and let f be a bond belonging to one of the rings and sharing one atom with e. In the cases {r,s} = {4,4}, {4,5}, {4,6}, {5,5} and {5,6}, both e and f must be single bonds.
+
 ![Forbidden substructure examples for option B3](option-B3.png)
 
 `-B4` Obey Bredt's rule for two rings of length 6 sharing three bonds. Consider two rings of length 6 that share three bonds. Then any bond which lies in one of the rings and has an atom in the other ring must be a single bond.
