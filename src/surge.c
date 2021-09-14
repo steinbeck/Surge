@@ -484,7 +484,7 @@ SDformat(int *vcol, int n, int *mult, int ne)
         for (i = 0; i < n; ++i)
         {
 	    gzprintf(gzoutfile,"    0.0000    0.0000    0.0000 %s"
-                   "  0  0  0  0  0  0  0  0  0  0  0  0\n",
+                   "   0  0  0  0  0  0  0  0  0  0  0  0\n",
                    atom[atomtype[vcol[i]]].name);
         }
     
@@ -504,7 +504,7 @@ SDformat(int *vcol, int n, int *mult, int ne)
     for (i = 0; i < n; ++i)
     {
 	fprintf(outfile,"    0.0000    0.0000    0.0000 %s"
-               "  0  0  0  0  0  0  0  0  0  0  0  0\n",
+               "   0  0  0  0  0  0  0  0  0  0  0  0\n",
                atom[atomtype[vcol[i]]].name);
     }
 
