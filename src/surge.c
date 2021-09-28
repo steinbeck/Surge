@@ -1,5 +1,5 @@
-/* This is a rough draft of a molecule generator based on geng.
-   Version 0.5, May 22 2021.
+/* SURGE: a molecule generator based on geng.
+   Version 0.9, September 21, 2021.
 
    Unix-style compilation command would be:
 
@@ -18,44 +18,49 @@
          -DPRUNE=surgeprune -DGENG_MAIN=geng_main \
          surge.c geng.c planarity.c nautyW1.a -lz
 
-***********************************************************************/
+   There is a makefile in the package; edit the first few lines.
 
-/**************TODO****************************************
-* Bounds on the number of vertices of degree 1 and 4
-* Option to make all replacements of equivalent atoms
-* Figure out twins that are not leaves
-* Nitrogen@5 and similar variations
-* Determine interaction of -P with -t,-f,-p
-* Test PRUNE functions for efficiency as PREPRUNE
-**********************************************************/
+   This version works best with geng version 3.2 or later. To use
+   with an earlier version, add -DOLDGENG to the compilation command.
+
+***********************************************************************/
 
 #ifdef ZLIB
 #define USAGE \
-  "surge [-oFILE] [-z] [-u|-A|-S] [-T] [-e#|-e#:#] [-m#/#] formula"
+  "[-oFILE] [-z] [-u|-A|-S] [-T] [-e#|-e#:#] [-d#] [-c#] [-m#/#] formula"
 #else
 #define USAGE \
-  "surge [-oFILE] [-u|-A|-S] [-T] [-e#|-e#:#] [-m#/#] formula"
+  "[-oFILE] [-u|-A|-S] [-T] [-e#|-e#:#] [-d#] [-c#] [-m#/#] formula"
 #endif
 
-#define HELPTEXT \
-"Make chemical graphs from a formula.\n" \
-"  Known atoms are C,B,N,P,O,S,H,Cl,F,Br,I at their lowest valences.\n" \
+#define HELPUSECMD
+
+#define HELPTEXT1 \
+"Make chemical graphs from a formula. Version 0.9.\n" \
+"  Known elements are C,B,N,P,O,S,H,Cl,F,Br,I at their lowest valences.\n" \
+"  Higher valences can be selected using Nx (Nitrogen/5), Sx,Sy (Sulfur 4/6)\n" \
+"   Px (Phosphorus/5).\n" \
 "\n" \
 "  formula = a formula like C8H6N2\n" \
 "\n" \
+"  -E..  Define a new element (see the manual)\n" \
 "  -O#   Output stage: 1 after geng, 2 after vcolg, 3 after multig\n" \
-"        Default is to write SD format\n" \
+"        Default is to write SDF format\n" \
 "  -S    Output in SMILES format\n" \
 "  -A    Output in alphabetical format\n" \
 "  -u    Just count, don't write\n" \
-"  -e# -e#:#  Restrict to given range of distinct bonds\n" \
+"  -e# -e#:#  Restrict to given range of distinct non-H bonds\n" \
 "  -t# -t#:#  Limit number of rings of length 3\n" \
 "  -f# -f#:#  Limit number of cycles of length 4\n" \
 "  -p# -p#:#  Limit number of cycles of length 5\n" \
 "  -b    Only rings of even length (same as only cycles of even length)\n" \
 "  -T    Disallow triple bonds\n" \
 "  -P    Require planarity\n" \
-"  -B#,...,# Specify sets of substructures to avoid\n" \
+"  -d#   Maximum degree not counting bond multiplicity or hydrogens (default 4)\n" \
+"  -c#   Maximum coordination number (default 4). This is the maximum number\n" \
+"         of distinct atoms (including H) that an atom can be bonded to\n" \
+"         Coordination number > 4 is only allowed if no neighbours are H\n" \
+"  -B#,...,# Specify sets of substructures to avoid (details in manual)\n" \
 "     1 = no triple bonds in rings up to length 7\n" \
 "     2 = Bredt's rule for two rings ij with one bond in\n" \
 "           common (33, 34, 35, 36, 44, 45)\n" \
@@ -64,17 +69,21 @@
 "     4 = Bredt's rule for two rings of length 6 sharing three bonds\n" \
 "     5 = no substructures A=A=A (in ring or not)\n" \
 "     6 = no substructures A=A=A in rings up to length 8\n" \
-"     7 = no K_33 or K24 structure\n" \
+"        For -B5 and -B6, the central atom only has 2 non-H neighbours\n" \
+"     7 = no K_33 or K_24 structure\n" \
 "     8 = none of cone of P4 or K4 with 3-ear\n" \
-"     9 = no atom on more than one ring of length 3 or 4\n" \
-"  -v    Write more information to stderr\n" \
+"     9 = no atom in more than one ring of length 3 or 4\n" \
+"  -v     Write more information to stderr\n" \
 "  -m#/#  Do only a part. The two numbers are res/mod where 0<=res<mod.\n" \
 "  -oFILE Write the output to the given file rather than to stdout.\n" \
 "  -z     Write output in gzip format (only if compiled with zlib)\n"
 
+#define EXTRAUSAGE ""
+#define HELPTEXT2 ""
+
 /* Undocumented options:
   -G...  Anything to the end of the parameter is passed to geng
-  -x     Used for tuning purposes; not useful for users
+  -x     Used for development purposes; not useful for users
 */
 
 #define MAXN WORDSIZE    /* Not bigger than WORDSIZE, which can be 32 or 64 */
@@ -88,30 +97,6 @@
 #endif
 
 #define DEBUG 0
-
-const static struct atomstruct
-{
-    char *name;
-    char *smilesname;
-    int valence;
-    int index;   /* Used in -T style outputs */
-} atom[] =
-{   /* Must be in decreasing order of valence */
-  { "C", "C",   4, 0 },
-  { "N", "N",   3, 1 },
-  { "P", "N",   3, 3 },
-  { "B", "B",   3, 9 },
-  { "O", "O",   2, 2 },
-  { "S", "S",   2, 4 },
-  { "H", "[H]", 1, 99 },
-  { "F", "F",   1, 5 },
-  { "Cl", "Cl", 1, 6 },
-  { "Br", "Br", 1, 7 },
-  { "I",  "I",  1, 8 }
-};
-#define NUMATOMTYPES (sizeof(atom)/sizeof(atom[0]))
-#define HYDROGEN(i) (strcmp(atom[i].name,"H") == 0)
-#define FORMULALEN 30
 
 static struct smilesstruct
 {
@@ -130,13 +115,15 @@ static int smileslen;
 typedef unsigned long long counter;  /* For counters that might overflow */
 
 static int hydrogens;
-static int nv;  /* atoms except H */
-static int numtypes;  /* different atoms except H */
-static int atomtype[FORMULALEN],atomcount[FORMULALEN]; /* Not H */
+static int nv;  /* number of atoms except H */
+static int numtypes;  /* different elements except H */
+#define FORMULALEN 50
+static int elementtype[FORMULALEN],elementcount[FORMULALEN];
+                        /* Not H, decreasing valence */
 static char canonform[2*FORMULALEN]; /* The formula in canonical order */
 static int valencesum;  /* Sum of valences for non-H */
 static int maxtype[8]; /* maxtype[d] is maximum index into
-                    atomtype/atomcount for vertices of degree d */
+                    elementtype/elementcount for vertices of degree d */
 
 /* Used with -A */
 static boolean alphabetic;
@@ -153,8 +140,11 @@ static boolean bad6;    /* Avoid =A= in rings up to length 8 */
       /* Note that bad6 is turned off if bad5 is set */
 static boolean bad7;    /* Avoid K_{2,4} and K_{3,3} */
 static boolean bad8;    /* Avoid cone(P4) and K4 with 3-ear */
+      /* bad8 is turned off if -t and -f options make it impossible */
 static boolean bad9;    /* No atom on two rings of length 3 or 4 */
       /* bad9 is turned off if -t and -f options make it impossible */
+
+static boolean needcoordtest;
 
 static boolean needcycles;
 static int maxcycles=0;
@@ -178,7 +168,8 @@ static boolean smiles;  /* output in SMILES format */
 static int maxbond;  /* maximum mult -1 of bonds (1 if -t, else 2) */
 
 static boolean planar;  /* Molecules must be planar */
-static boolean xswitch;  /* Undocumented */
+static int maxcoord;  /* Maximum coordination number allowed */        //UNUSED
+static boolean xswitch;  /* Undocumented, used for development */
 
 /* In the following, the counts are only meaningful if the
    corresponding boolean is true. */
@@ -210,13 +201,14 @@ typedef struct edge
 {
     int x,y;         /* The atoms with this bond */
     int maxmult;     /* This edge can have multiplicity 1..maxmult+1 */
-    int allenemate1,allenemate2;  /* Previous bond that cannot be double
-                                    at the same time as this */
+    int allenemate1,allenemate2;
+        /* Previous bond that cannot be multiple at the same time as this */
     setword xy;
 } edgetype;
 static int numedges;
 static edgetype edge[MAXNE];
 static int edgenumber[MAXN][MAXN]; 
+static int deg[MAXN];  /* Simple graph degree */
 
 static FILE *outfile;
 #ifdef ZLIB
@@ -224,8 +216,8 @@ static gzFile gzoutfile;
 #endif
 static boolean gzip;
 
-/* Macros for appending to a string using point p */
-#define PUTINT(xx) { unsigned long ul = (xx); char *sp; \
+/* Macros for appending to a string using pointer p */
+#define PUTINT(xx) { unsigned long ul = (xx); char *sp,s[15]; \
  if (ul == 0) *(p++) = '0'; \
  else { sp = s; while (ul) { *(sp++) = (ul % 10) + '0'; ul /= 10; } \
         while (sp > s) { *(p++) = *(--sp); } }}
@@ -234,6 +226,128 @@ static boolean gzip;
    while (*sp != '\0') *(p++) = *(sp++); }
 #define PUTBND(xx) { int bnd = (xx); if (bnd == 0) *(p++) = '-'; \
    else if (bnd == 1) *(p++) = '='; else *(p++) = '#'; }
+
+/******************************************************************/
+
+#define MAXELEMENTS 30
+static struct elementstruct
+{
+    char *inputname,*name;
+    boolean organic;  /* Belongs to organic subset */
+    int valence;
+    int lowervalence;  /* Next lower valence, or 0 if none */
+    int maxcoord; /* Maximum number of distinct neighbours including H */
+    int index;   /* Used in -T style outputs */
+} element[MAXELEMENTS] =
+{   /* The order of listing does not matter.
+       Other elements can be added to the table by following the same
+       pattern, up to any limit. All extra elements must be marked
+       as non-organic.  The inputname field must have the form X or Xx
+       and must be unique. */
+  { "C", "C", TRUE,  4,0,4,  0 },
+  { "N", "N", TRUE,  3,0,3,  1 },
+  { "Nx","N", TRUE,  5,3,4, 10 },
+  { "P", "P", TRUE,  3,0,3,  3 },
+  { "Px","P", TRUE,  5,3,5, 13 },
+  { "B", "B", TRUE,  3,0,3,  9 },
+  { "O", "O", TRUE,  2,0,2,  2 },
+  { "S", "S", TRUE,  2,0,2,  4 },
+  { "Sx","S", TRUE,  4,2,4, 11 },
+  { "Sy","S", TRUE,  6,4,6, 12 },
+  { "H", "H", FALSE, 1,0,1, 99 },
+  { "F", "F", TRUE,  1,0,1,  5 },
+  { "Cl","Cl",TRUE,  1,0,1,  6 },
+  { "Br","Br",TRUE,  1,0,1,  7 },
+  { "I", "I", TRUE,  1,0,1,  8 },
+  { "Si","Si",FALSE, 4,0,4, 14 },
+  { NULL,NULL,FALSE, 0,0,0, 0 }
+};
+static int numelements;  /* Actual number in the table */
+static int maxindex; /* Max value of the index field except 99 */
+#define ISHYDROGEN(i) (strcmp(element[i].name,"H") == 0)
+
+/******************************************************************/
+
+static int
+elementindex(char *inputname)
+/* Index into element[] of element with this element input name,
+   or -1 if it isn't present. */
+{
+    int i;
+
+    for (i = 0; i < numelements; ++i)
+	if (strcmp(element[i].inputname,inputname) == 0)
+	    break;
+
+    if (i < numelements) return i;
+    else
+    {
+	fprintf(stderr,">E Unknown element %s\n",inputname);
+	exit(1);
+    }
+}
+
+static void
+addelement(char *inputname, char *name, int valence, int maxcoord)
+/* Add an element to element[]. inputname and name must be of the
+form A or Aa. If name==NULL then name is the same as inputname.  If
+maxcoord==0 or maxcoord > valence then maxcoord is the same as valence. */
+{
+    int i;
+
+    if (numelements == MAXELEMENTS)
+	gt_abort(">E increase MAXELEMENTS\n");
+
+    if (name == NULL) name = inputname;
+    if (maxcoord == 0 || maxcoord > valence) maxcoord = valence;
+
+    if (inputname == NULL || valence <= 0)
+        gt_abort(">E invalid parameters in addelement()\n");
+
+    for (i = 0; i < numelements; ++i)
+    {
+	if (strcmp(element[i].inputname,inputname) == 0)
+	{
+	    fprintf(stderr,">E element %s is already present\n",name);
+	    exit(1);
+        }
+    }
+
+    if (!isupper(inputname[0]) || (inputname[1] != '\0' 
+             && (!islower(inputname[1]) || inputname[2] != '\0')))
+        gt_abort(">E element names must have form A or Aa\n");
+    if (!isupper(name[0]) || (name[1] != '\0' 
+             && (!islower(name[1]) || name[2] != '\0')))
+        gt_abort(">E element names must have form A or Aa\n");
+
+    if (3*maxcoord < valence || valence < 0)
+        gt_abort(">E impossible maxcoord/valence\n");
+
+    element[numelements].inputname = strdup(inputname);
+    element[numelements].name = strdup(name);
+    element[numelements].valence = valence;
+	/* lowervalence is only used for SMILES output of
+           atoms in the organic subset and since those are
+           in the table already we don't need a value to
+           be set here. */
+    element[numelements].lowervalence = 0;
+    element[numelements].maxcoord = maxcoord;
+    element[numelements].organic = FALSE;
+    element[numelements].index = ++maxindex;
+    ++numelements;
+}
+
+#undef HELPTEXT2
+#ifdef SURGEPLUGIN
+/* Note that the value of SURGEPLUGIN must be a filename in quotes, so on
+   the compilation command you will probably need something like
+   -DSURGEPLUGIN='"myplugin.h"' . */
+#include SURGEPLUGIN
+#endif
+
+#ifndef HELPTEXT2
+#define HELPTEXT2 ""
+#endif
 
 /******************************************************************/
 
@@ -292,6 +406,12 @@ program with WORDSIZE=64 if you really need to). */
     return ans1^ans2;
 }
 #endif
+
+/******************************************************************/
+
+void dummy()
+{
+}
 
 /******************************************************************/
 
@@ -396,11 +516,12 @@ isplanar(graph *g, int n)
 /******************************************************************/
 
 static void
-SMILESoutput(int *vcol, int n, int *mult, int ne)
+SMILESoutput(int *vcol, int n, int *hyd, int *mult, int ne)
 /* Write molecules in SMILES format */
 {
     char *p,line[20*MAXNE];
     int i,x,y,r,m;
+    const struct elementstruct *thiselement;
 
     p = line;
 
@@ -411,7 +532,27 @@ SMILESoutput(int *vcol, int n, int *mult, int ne)
 	switch(smilesskeleton[i].item)
 	{
 	 case SM_ATOM :
-	    PUTSTR(atom[atomtype[vcol[x]]].smilesname);
+	    thiselement = &element[vcol[x]];
+#if 0
+ /* This version seems to meet the OpenSmiles standard, but some
+    problems with obabel have not been tracked down. */
+	    if (!thiselement->organic ||
+                    thiselement->valence - hyd[x] <= thiselement->lowervalence)
+#else
+ /* This version gives explicit H for atoms in higher valences even
+    if they are in the organic subset. */
+	    if (!thiselement->organic ||
+		 (thiselement->lowervalence > 0 && hyd[x] > 0))
+#endif
+	    {
+		*(p++) = '[';
+		PUTSTR(thiselement->name);
+		if (hyd[x] > 0) *(p++) = 'H';
+		if (hyd[x] > 1) PUTINT(hyd[x])
+		*(p++) = ']';
+	    }
+	    else 
+		PUTSTR(thiselement->name);
 	    break;
 	 case SM_BOND :
 	    m = mult[edgenumber[x][y]];
@@ -470,11 +611,11 @@ SMILESoutput(int *vcol, int n, int *mult, int ne)
 /******************************************************************/
 
 static void
-SDformat(int *vcol, int n, int *mult, int ne)
-/* Write molecules in SD format */
+SDFformat(int *vcol, int n, int *hyd, int *mult, int ne)
+/* Write molecules in SDF format */
 {
-    int i;
-
+    int i,j;
+    
 #ifdef ZLIB
     if (gzip)
     {
@@ -482,16 +623,14 @@ SDformat(int *vcol, int n, int *mult, int ne)
         gzprintf(gzoutfile,"%3d%3d  0  0  0  0            999 V2000\n",n,ne);
 
         for (i = 0; i < n; ++i)
-        {
-	    gzprintf(gzoutfile,"    0.0000    0.0000    0.0000 %s"
-                   "   0  0  0  0  0  0  0  0  0  0  0  0\n",
-                   atom[atomtype[vcol[i]]].name);
-        }
+	    gzprintf(gzoutfile,"    0.0000    0.0000    0.0000 %-2s"
+                   "  0  0  0  0  0%3d  0  0  0  0  0  0\n",
+                   element[vcol[i]].name,element[vcol[i]].valence);
     
         for (i = 0; i < ne; ++i)
 	    gzprintf(gzoutfile,"%3d%3d%3d  0  0  0  0\n",
                 edge[i].x+1,edge[i].y+1,mult[i]+1);
-    
+
         gzprintf(gzoutfile,"M  END\n$$$$\n");
 
         return;
@@ -502,11 +641,9 @@ SDformat(int *vcol, int n, int *mult, int ne)
     fprintf(outfile,"%3d%3d  0  0  0  0            999 V2000\n",n,ne);
 
     for (i = 0; i < n; ++i)
-    {
-	fprintf(outfile,"    0.0000    0.0000    0.0000 %s"
-               "   0  0  0  0  0  0  0  0  0  0  0  0\n",
-               atom[atomtype[vcol[i]]].name);
-    }
+	fprintf(outfile,"    0.0000    0.0000    0.0000 %-2s"
+               "  0  0  0  0  0%3d  0  0  0  0  0  0\n",
+               element[vcol[i]].name,element[vcol[i]].valence);
 
     for (i = 0; i < ne; ++i)
 	fprintf(outfile,"%3d%3d%3d  0  0  0  0\n",
@@ -521,7 +658,7 @@ static void
 multigoutput(int *vcol, int n, int *mult, int ne)
 /* Write output equal to the multig -T format. */
 {
-    char line[10+60*MAXN],*p,s[20];
+    char line[10+60*MAXN],*p;
     int i;
 
     p = line;
@@ -529,7 +666,7 @@ multigoutput(int *vcol, int n, int *mult, int ne)
     for (i = 0; i < n; ++i)
     {
         SPC;
-        PUTINT(atom[atomtype[vcol[i]]].index);
+        PUTINT(element[vcol[i]].index);
     }
     SPC;
     for (i = 0; i < ne; ++i)
@@ -559,7 +696,7 @@ static void
 alphabeticoutput(int *vcol, int n, int *mult, int ne)
 /* Write alphabetic output */
 {
-    char line[10+60*MAXN],*p,s[20];
+    char line[10+60*MAXN],*p;
     int i,xx,yy;
 
     p = line;
@@ -601,30 +738,44 @@ alphabeticoutput(int *vcol, int n, int *mult, int ne)
 /******************************************************************/
 
 static void
-gotone(int *vcol, int n, int *mult, int ne, int level)
-/* Now we have a completed molecule.  Bonds level..ne-1 are single. */
+gotone(int *vcol, int n, int *hyd, int *mult, int ne, int level)
+/* Now we have a completed molecule.
+   deg[0..n-1] is the simple graph degrees
+   hyd[0..n-1] is the number of implicit hydrogens
+*/
 {
-    int i;
+    int i,val;
+
+    for (i = level; i < ne; ++i) mult[i] = 0;
+
+    if (needcoordtest)
+        for (i = 0; i < n; ++i)
+        {
+	    if (deg[i] + hyd[i] > element[vcol[i]].maxcoord) return;
+	    if (deg[i] + hyd[i] > 4 && hyd[i] > 0) return;
+        }
+
+#ifdef SURGEPLUGIN_STEP3
+    SURGEPLUGIN_STEP3
+#endif
 
     ++multigout;
     if (uswitch) return;
-
-    for (i = level; i < ne; ++i) mult[i] = 0;
 
     if (outlevel == 3)
 	multigoutput(vcol,n,mult,ne);
     else if (alphabetic)
 	alphabeticoutput(vcol,n,mult,ne);
     else if (smiles)
-	SMILESoutput(vcol,n,mult,ne);
+	SMILESoutput(vcol,n,hyd,mult,ne);
     else
-	SDformat(vcol,n,mult,ne);
+	SDFformat(vcol,n,hyd,mult,ne);
 }
 
 /******************************************************************/
 
 static boolean
-testemax(int * restrict mult, int ne, int level)
+testemax(int *mult, int ne, int level)
 /* Test if edge colouring is maximum wrt group. */
 {
     int *gp,i,j;
@@ -651,8 +802,7 @@ testemax(int * restrict mult, int ne, int level)
 static void
 /* Recursive scan for multiplying edges 
    Version which checks allenemate for -B3 */
-escan2(int level, int needed, int * restrict vcol, int * restrict def,
-      int * restrict prev, int n, int * restrict mult, int ne)
+escan2(int level, int needed, int *vcol, int *hyd, int *prev, int n, int *mult, int ne)
 {
     int lev,maxlev,k,max,x,y;
 
@@ -660,7 +810,7 @@ escan2(int level, int needed, int * restrict vcol, int * restrict def,
     {
 	if (egroupsize > 1 && !testemax(mult,ne,level))
 	    return;
-	gotone(vcol,n,mult,ne,level);
+	gotone(vcol,n,hyd,mult,ne,level);
 	return;
     }
     else
@@ -673,8 +823,8 @@ escan2(int level, int needed, int * restrict vcol, int * restrict def,
 	    max = edge[lev].maxmult;
 
             if (needed < max) max = needed;
-            if (def[x] < max) max = def[x];
-            if (def[y] < max) max = def[y];
+            if (hyd[x] < max) max = hyd[x];
+            if (hyd[y] < max) max = hyd[y];
             if (prev[lev] >= 0 && mult[prev[lev]] < max) max = mult[prev[lev]];
 	    if (edge[lev].allenemate1 >= 0 && mult[edge[lev].allenemate1] >= 1)
                  max = 0;
@@ -684,11 +834,11 @@ escan2(int level, int needed, int * restrict vcol, int * restrict def,
             for (k = 1; k <= max; ++k)
             {
 	        mult[lev] = k;
-	        def[x] -= k;
-                def[y] -= k;
-	        escan2(lev+1,needed-k,vcol,def,prev,n,mult,ne);
-	        def[x] += k;
-                def[y] += k;
+	        hyd[x] -= k;
+                hyd[y] -= k;
+	        escan2(lev+1,needed-k,vcol,hyd,prev,n,mult,ne);
+	        hyd[x] += k;
+                hyd[y] += k;
     	    }
 
 	    mult[lev] = 0;
@@ -702,8 +852,8 @@ escan2(int level, int needed, int * restrict vcol, int * restrict def,
 
 static void
 /* Recursive scan for multiplying edges */
-escan(int level, int needed, int * restrict vcol, int * restrict def,
-      int * restrict prev, int n, int * restrict mult, int ne)
+escan(int level, int needed, int *vcol, int *hyd,
+      int *prev, int n, int *mult, int ne)
 {
     int lev,maxlev,k,max,x,y;
 
@@ -711,7 +861,7 @@ escan(int level, int needed, int * restrict vcol, int * restrict def,
     {
 	if (egroupsize > 1 && !testemax(mult,ne,level))
 	    return;
-	gotone(vcol,n,mult,ne,level);
+	gotone(vcol,n,hyd,mult,ne,level);
 	return;
     }
     else
@@ -724,19 +874,19 @@ escan(int level, int needed, int * restrict vcol, int * restrict def,
 	    max = edge[lev].maxmult;
 
             if (needed < max) max = needed;
-            if (def[x] < max) max = def[x];
-            if (def[y] < max) max = def[y];
+            if (hyd[x] < max) max = hyd[x];
+            if (hyd[y] < max) max = hyd[y];
             if (prev[lev] >= 0 && mult[prev[lev]] < max)
 	        max = mult[prev[lev]];
 
             for (k = 1; k <= max; ++k)
             {
 	        mult[lev] = k;
-	        def[x] -= k;
-                def[y] -= k;
-	        escan(lev+1,needed-k,vcol,def,prev,n,mult,ne);
-	        def[x] += k;
-                def[y] += k;
+	        hyd[x] -= k;
+                hyd[y] -= k;
+	        escan(lev+1,needed-k,vcol,hyd,prev,n,mult,ne);
+	        hyd[x] += k;
+                hyd[y] += k;
     	    }
 
 	    mult[lev] = 0;
@@ -772,21 +922,36 @@ findegroup(int *vcol, int n, int ne)
 /****************************************************************/
 
 static void
-colouredges(graph *g, int *vcol, int n)
+colouredges(graph *g, int *vcolindex, int n)
 /* This procedure receives graphs from the vcolg phase and
    colours the edges. */
 {
-    int def[MAXN];  /* Remaining degree of vertex */
+    int hyd[MAXN];  /* Remaining degree of vertex */
     int i,j,k,ne;
     int mult[MAXNE];
     int prev[MAXNE]; /* If >= 0, earlier point that must have greater colour */
     int needed;  /* Extra edges needed */
     int iter[FORMULALEN];
+    int vcol[MAXN];  /* index into element[] */
 
     ne = numedges;
 
+    /* hyd[i] starts with the number of hydrogens needed if all bonds are
+       single and is reduced as bonds are multiplied */
+
+    needcoordtest = FALSE;
     for (i = 0; i < n; ++i)
-	def[i] = atom[atomtype[vcol[i]]].valence - POPCOUNT(g[i]);
+    {
+	vcol[i] = elementtype[vcolindex[i]];
+	hyd[i] = element[vcol[i]].valence - deg[i];
+	if (element[vcol[i]].valence > element[vcol[i]].maxcoord 
+                    || (element[vcol[i]].valence > 4 && hyd[i] > 0))
+	    needcoordtest = TRUE;
+    }
+
+#ifdef SURGEPLUGIN_STEP2
+    SURGEPLUGIN_STEP2
+#endif
 
     needed = (valencesum - hydrogens)/2 - ne;  /* Extra edges needed */
 
@@ -795,14 +960,14 @@ colouredges(graph *g, int *vcol, int n)
     if (alphabetic)
     {
 	iter[0] = 0;
-	for (i = 1; i < numtypes; ++i) iter[i] = iter[i-1] + atomcount[i-1];
+	for (i = 1; i < numtypes; ++i) iter[i] = iter[i-1] + elementcount[i-1];
 
-	for (i = 0; i < n; ++i) newlabel[i] = iter[vcol[i]]++;
+	for (i = 0; i < n; ++i) newlabel[i] = iter[vcolindex[i]]++;
     }
 
-    if (needed == 0)     /* Check no badlist is violated here. */
+    if (needed == 0)
     {
-	gotone(vcol,n,mult,ne,0);
+	gotone(vcol,n,hyd,mult,ne,0);
 	return;
     }
 
@@ -810,7 +975,7 @@ colouredges(graph *g, int *vcol, int n)
 
     for (i = 0; i < n; ++i)
     {
-	if (POPCOUNT(g[i]) != 1) continue;
+	if (deg[i] != 1) continue;
         /* Find most recent equivalent j */
         for (j = i; --j >= 0; )
             if (g[i] == g[j] && vcol[j] == vcol[i])
@@ -843,10 +1008,14 @@ colouredges(graph *g, int *vcol, int n)
 	for (i = 0; i < ne; ++i) mult[i] = 0;
 	for (i = 0; i < ne; ++i)
 	    if (prev[i] < 0 && edge[i].maxmult >= 1
-		&& def[edge[i].x] > 0 && def[edge[i].y] > 0)
+		&& hyd[edge[i].x] > 0 && hyd[edge[i].y] > 0)
 	    {
 		mult[i] = 1;
-		gotone(vcol,n,mult,ne,ne);
+		--hyd[edge[i].x];
+		--hyd[edge[i].y];
+		gotone(vcol,n,hyd,mult,ne,ne);
+		++hyd[edge[i].x];
+		++hyd[edge[i].y];
 		mult[i] = 0;
 	    }
 	return;
@@ -855,17 +1024,17 @@ colouredges(graph *g, int *vcol, int n)
     if (egroupsize != 1) ++multignontriv;
     if (egroupsize > maxegroup) maxegroup = egroupsize;
 
-    if (bad5 || bad6) escan2(0,needed,vcol,def,prev,n,mult,ne);
-    else              escan(0,needed,vcol,def,prev,n,mult,ne);
+    if (bad5 || bad6) escan2(0,needed,vcol,hyd,prev,n,mult,ne);
+    else              escan(0,needed,vcol,hyd,prev,n,mult,ne);
 }
 
 /******************************************************************/
 
 static void
-vcolgoutput(graph *g, int *vcol, int n)
+vcolgoutput(graph *g, int *vcolindex, int n)
 /* Write output equal to the vcolg -T format. */
 {
-    char line[10+30*MAXN],*p,s[20];
+    char line[10+30*MAXN],*p;
     int i,j,ne;
     setword w;
 
@@ -878,7 +1047,7 @@ vcolgoutput(graph *g, int *vcol, int n)
     for (i = 0; i < n; ++i)
     {
         SPC;
-        PUTINT(atom[atomtype[vcol[i]]].index);
+        PUTINT(element[elementtype[vcolindex[i]]].index);
     }
     SPC;
     for (i = 0; i < n; ++i)
@@ -908,7 +1077,7 @@ vcolgoutput(graph *g, int *vcol, int n)
 /******************************************************************/
 
 static boolean
-testvmax(int *col, int n)
+testvmax(int *colindex, int n)
 /* Test if vertex colouring is maximum wrt group. If so, return group.
    If not, return a safe level to return to. */
 {
@@ -921,8 +1090,8 @@ testvmax(int *col, int n)
 	for (i = 0; i < n; ++i)
 	{
 	    j = gp[i];
-	    if      (col[j] > col[i]) return FALSE;
-	    else if (col[j] < col[i]) break;
+	    if      (colindex[j] > colindex[i]) return FALSE;
+	    else if (colindex[j] < colindex[i]) break;
 	}
     }
 
@@ -932,36 +1101,37 @@ testvmax(int *col, int n)
 /**********************************************************************/
 
 static void
-vscan(int level, int *col, graph *g, int *prev, int *maxcol, int *remain, int n)
-/* Recursive vertex colour scan, case of non-trivial group */
+vscan(int level, int *colindex, graph *g, int *prev,
+                               int *maxcolindex, int *remain, int n)
+/* Recursive vertex colour scan */
 {
     int k,max;
 
     if (level == n)
     {
-	if (vgroupsize == 1 || testvmax(col,n))
+	if (vgroupsize == 1 || testvmax(colindex,n))
 	{
 	    ++vcolgout;
 	    if (outlevel == 2)
 	    {
-		if (!uswitch) vcolgoutput(g,col,n);
+		if (!uswitch) vcolgoutput(g,colindex,n);
 	    }
 	    else
-	        colouredges(g,col,n);
+	        colouredges(g,colindex,n);
 	}
 	return;
     }
 
-    max = maxcol[level];
-    if (prev[level] >= 0 && col[prev[level]] < max)
-	max = col[prev[level]];
+    max = maxcolindex[level];
+    if (prev[level] >= 0 && colindex[prev[level]] < max)
+	max = colindex[prev[level]];
 
     for (k = 0; k <= max; ++k)   
     {
         if (remain[k] == 0) continue;
-	col[level] = k;
+	colindex[level] = k;
 	--remain[k];
-	vscan(level+1,col,g,prev,maxcol,remain,n);
+	vscan(level+1,colindex,g,prev,maxcolindex,remain,n);
 	++remain[k];
     }
 }
@@ -999,10 +1169,14 @@ colourvertices(graph *g, int n)
     int lab[MAXN],ptn[MAXN],orbits[MAXN];
     int prev[MAXN]; /* If >= 0, earlier point that must have greater colour */
     int weight[MAXN];
-    int maxcol[MAXN];  /* Max colour for each vertex */
+    int maxcolindex[MAXN];  /* Max colour index for each vertex */
     int remain[FORMULALEN];  /* Remaining number of colours for each vertex */
-    int vcol[MAXN];  /* Place to put the vertex colours */
+    int vcolindex[MAXN];  /* Index into elementtype[] */
     int i,j;
+
+#ifdef SURGEPLUGIN_STEP1
+    SURGEPLUGIN_STEP1
+#endif
 
     for (i = 0; i < n; ++i)
     {
@@ -1033,15 +1207,15 @@ colourvertices(graph *g, int n)
     nauty(g,lab,ptn,NULL,orbits,&options,&stats,workspace,2*MAXN,1,n,NULL);
 
     if (stats.grpsize2 > 0 || stats.grpsize1 > 1e7)
-        gt_abort(">E surge : vgroup size greater than 10^7 encoutered\n");
+        gt_abort(">E surge : vgroup size greater than 10^7 encountered\n");
     vgroupsize = stats.grpsize1 + 0.01;
 
-    for (i = 0; i < numtypes; ++i) remain[i] = atomcount[i];
-    for (i = 0; i < n; ++i) maxcol[i] = maxtype[POPCOUNT(g[i])];
+    for (i = 0; i < numtypes; ++i) remain[i] = elementcount[i];
+    for (i = 0; i < n; ++i) maxcolindex[i] = maxtype[deg[i]];
 
     if (vgroupsize == 1)  /* Trivial group */
     {
-        vscan(0,vcol,g,prev,maxcol,remain,n);
+        vscan(0,vcolindex,g,prev,maxcolindex,remain,n);
 	return;
     }
 
@@ -1067,9 +1241,9 @@ colourvertices(graph *g, int n)
    /* Check the logic of the next section. What about maxdeg? */
     if (numtypes == 1)
     {
-	for (i = 0; i < n; ++i) vcol[i] = 0;
+	for (i = 0; i < n; ++i) vcolindex[i] = 0;
 	++vcolgout;
-	colouredges(g,vcol,n);
+	colouredges(g,vcolindex,n);
 	return;
     }
 
@@ -1079,7 +1253,7 @@ colourvertices(graph *g, int n)
     for (i = j + 1; i < n; ++i)
         if (orbits[i] == j) prev[i] = j;
 
-    vscan(0,vcol,g,prev,maxcol,remain,n);
+    vscan(0,vcolindex,g,prev,maxcolindex,remain,n);
 }
 
 /******************************************************************/
@@ -1089,48 +1263,13 @@ extern int geng_maxe;
 int
 surgepreprune(graph *g, int n, int maxn)
 /* This function is called by the PREPRUNE service of geng.
- It speeds up the generation of connected graphs. */
+ It does -B9 which is more efficient here. If OLDGENG is 
+ defined, it also speeds up the generation of connected
+ graphs.  (For new geng, that function is built in.) */
 {
     setword notvisited,queue;
+    setword c34,w,ww,cyc;
     int ne,nc,i;
-
-    if (n == maxn || geng_maxe - maxn >= 5) return 0;
-
-    ne = 0;
-    for (i = 0; i < n; ++i) ne += POPCOUNT(g[i]);
-    ne /= 2;
-
-    nc = 0;
-    notvisited = ALLMASK(n);
-
-    while (notvisited)
-    {
-        ++nc;
-        queue = SWHIBIT(notvisited);
-        notvisited &= ~queue;
-        while (queue)
-        {
-            TAKEBIT(i,queue);
-            notvisited &= ~bit[i];
-            queue |= g[i] & notvisited;
-        }
-    }
-
-    if (ne - n + nc > geng_maxe - maxn + 1) return 1;
-
-    return 0;
-}
-
-int
-surgeprune(graph *g, int n, int nmax)
-/* This is a procedure that geng will call at each level
-using the PRUNE service.
-The options -t, -f, -p, -B7,8,9 are implemented here by
-incrementally updating the required counts. */
-{
-    setword w,ww,ax,ay,c34,cyc;
-    int i,x,y,k,extra;
-    int i1,i2,i3,i4,d1,d2,d3,d4;
 
     if (bad9)    /* cycle34verts */
     {
@@ -1172,6 +1311,47 @@ incrementally updating the required counts. */
 	    cycle34verts[n] = c34;
 	}
     }
+
+#ifdef OLDGENG
+    if (n == maxn || geng_maxe - maxn >= 5) return 0;
+
+    ne = 0;
+    for (i = 0; i < n; ++i) ne += POPCOUNT(g[i]);
+    ne /= 2;
+
+    nc = 0;
+    notvisited = ALLMASK(n);
+
+    while (notvisited)
+    {
+        ++nc;
+        queue = SWHIBIT(notvisited);
+        notvisited &= ~queue;
+        while (queue)
+        {
+            TAKEBIT(i,queue);
+            notvisited &= ~bit[i];
+            queue |= g[i] & notvisited;
+        }
+    }
+
+    if (ne - n + nc > geng_maxe - maxn + 1) return 1;
+#endif
+
+    return 0;
+}
+
+int
+surgeprune(graph *g, int n, int nmax)
+/* This is a procedure that geng will call at each level
+using the PRUNE service.
+The options -t, -f, -p, -B7,8 are implemented here by
+incrementally updating the required counts. */
+{
+    setword w,ax,ay,gx,gy,gxy,gxya,gi,gj;
+    int i,j,x,y,k,a,b,extra;
+    int i1,i2,i3,i4,d1,d2,d3,d4;
+    int v[MAXN];
 
     if (tswitch)
     {
@@ -1240,7 +1420,7 @@ incrementally updating the required counts. */
     if (bad7 && n >= 6)
     {
           /* For K_33 we can assume that vertex n-1 is included */
-        for (x = n; --x >= 1;)
+        for (x = n-1; --x >= 1;)
 	if (POPCOUNT(g[x]&g[n-1]) >= 3)
 	{
 	     for (y = x; --y >= 0;)
@@ -1249,7 +1429,7 @@ incrementally updating the required counts. */
 	
 	  /* But for K_24 we can't */
 	for (x = n; --x >= 1;)
-	if (POPCOUNT(x) >= 4)
+	if (POPCOUNT(g[x]) >= 4)
 	{
 	    for (y = x; --y >= 0;)
 		if (POPCOUNT(g[x]&g[y]) >= 4) return 1;
@@ -1258,46 +1438,79 @@ incrementally updating the required counts. */
 
     if (bad8)
     {
+       /* cone of P4 */
 	if (n >= 5)
 	{
 	    for (x = n; --x >= 0;)
 	    if (POPCOUNT(g[x]) == 4)
 	    {
               /* Think of a better way to do this */
-		w = g[x];
+		w = gx = g[x];
 		TAKEBIT(i1,w);
 		TAKEBIT(i2,w);
 		TAKEBIT(i3,w);
 		i4 = FIRSTBITNZ(w);
-		d1 = POPCOUNT(g[i1]&g[x]);
-		d2 = POPCOUNT(g[i2]&g[x]);
-		d3 = POPCOUNT(g[i3]&g[x]);
-		d4 = POPCOUNT(g[i4]&g[x]);
+		d1 = POPCOUNT(g[i1]&gx);
+		d2 = POPCOUNT(g[i2]&gx);
+		d3 = POPCOUNT(g[i3]&gx);
+		d4 = POPCOUNT(g[i4]&gx);
 		if (d1 > 0 && d2 > 0 && d3 > 0 && d4 > 0
 		   && ((d1 >= 2)+(d2 >= 2)+(d3 >= 2)+(d4 >= 2)) >= 2)
 		      return 1;
 	    }
+	    else if (POPCOUNT(g[x]) > 4)
+	    {
+		w = gx = g[x];
+		i = 0;
+		while (w)
+		{
+		    TAKEBIT(y,w);
+		    if (POPCOUNT(g[y]&gx) >= 2) v[i++] = y;
+		}
+		for (--i; i >= 1; --i)
+		for (j = 0; j < i; ++j)
+		    if ((g[v[i]] & bit[v[j]]) &&
+	  		      POPCOUNT((g[v[i]]|g[v[j]])&gx) >= 4)
+			return 1;
+	    }
 	}
+
+	/* K4 with a path of 3 edges between two of its vertices */
 
 	if (n >= 6)
 	{
 	    for (x = n; --x >= 1;)
-	    if (POPCOUNT(g[x]) == 4)	
+	    if (POPCOUNT(g[x]) >= 4)	
 	    {
 		for (y = x; --y >= 0;)
-		if (POPCOUNT(g[y]) == 4 && (g[y]&bit[x]) != 0
-				&& POPCOUNT(g[x]&g[y]) == 2)
+		if (POPCOUNT(g[y]) >= 4 && (g[y]&bit[x]))
 		{
-		    w = g[x]&g[y];
-		    i = FIRSTBITNZ(w);
-		    if (!(g[i]&w)) break;
-		    w = (g[x]^g[y])&~(bit[x]|bit[y]);
-		    i = FIRSTBITNZ(w);
-		    if ((g[i]&w)) return 1;
+		    gxy = g[x] & g[y];
+		    while (gxy)
+		    {
+			TAKEBIT(a,gxy);
+			gxya = gxy & g[a];
+			while (gxya)
+			{
+			    TAKEBIT(b,gxya);
+			    w = bit[x] | bit[y] | bit[a] | bit[b];
+			    gi = g[x] & ~w;
+			    gj = g[y] & ~w;
+			    while (gi)
+			    {
+				TAKEBIT(i,gi);
+				if ((g[i] & gj)) return 1;
+			    }
+			}
+		    }
 		}
 	    }
 	}
     }
+
+#ifdef SURGEPLUGIN_STEP0
+    SURGEPLUGIN_STEP0
+#endif
 
     return 0;
 }
@@ -1513,7 +1726,7 @@ findinducedcycles(graph *g, int n)
     if (cyclecount > maxcycles) maxcycles = cyclecount;
 
 #if 0
-    printf("cyclecount=%d\n",total,cyclecount);
+    printf("cyclecount=%d\n",cyclecount);
 
     {
 	setword cyc; int i,j;
@@ -1541,15 +1754,16 @@ surgeproc(FILE *outfile, graph *gin, int n)
     int i,j,k,d,n1,n12,n34,n4,ne;
     int isize,jsize;
     graph g[MAXN];
-    setword w,ww,pw,cyc,cycle8;
+    setword w,wxy,ww,pw,cyc,cycle8;
     int x,y,e1,e2,e3;
 
     n1 = n12 = n34 = n4 = 0;
 
     ++gengout;
+
     for (i = 0; i < n; ++i)
     {
-	d = POPCOUNT(gin[i]);
+	d = POPCOUNT(gin[i]);   /* deg[i] is not defined yet */
 	if      (d == 1) { ++n1; ++n12; }
         else if (d == 2) ++n12;
         else if (d == 3) ++n34;
@@ -1559,7 +1773,7 @@ surgeproc(FILE *outfile, graph *gin, int n)
     if (n > 1 && (n1 < min1 || n12 < min12 || n34 > max34 || n4 > max4))
 	return;
 
-    if (planar && !isplanar(gin,n)) return;
+    if (planar && !isplanar(gin,n)) return;    /* Try later */
 
     ++genggood;
 
@@ -1577,11 +1791,12 @@ surgeproc(FILE *outfile, graph *gin, int n)
 	g[i] = pw;
     }
 
-   /* Make the edge list for later use */
+   /* Make the edge list with default parameters */
 
     ne = 0;
     for (i = 0; i < n; ++i)
     {
+	deg[i] = POPCOUNT(g[i]);
         w = g[i] & BITMASK(i);
         while (w)
         {
@@ -1627,22 +1842,22 @@ surgeproc(FILE *outfile, graph *gin, int n)
 	    for (j = i+1; j < cyclecount; ++j)
 	    {
 	        jsize = POPCOUNT(inducedcycle[j]);
+	        if (jsize > 6) continue;
 
 	        w = inducedcycle[i] & inducedcycle[j];
 	        if (POPCOUNT(w) != 1) continue;
 
 		if (isize*jsize <= 15)
-		{
 		    edge[FIRSTBITNZ(w)].maxmult = 0;
-		}
 
 		if (isize+jsize <= 9)
 		{
+		    wxy = edge[FIRSTBITNZ(w)].xy;
 		    ww = (inducedcycle[i] | inducedcycle[j]) & ~w;
 		    while (ww)
 		    {
 			TAKEBIT(k,ww);
-			if ((edge[k].xy & w)) edge[k].maxmult = 0;
+			if ((edge[k].xy & wxy)) edge[k].maxmult = 0;
 		    }
 		}
 	    }	
@@ -1654,12 +1869,12 @@ surgeproc(FILE *outfile, graph *gin, int n)
 	for (i = 0; i < cyclecount-1; ++i)
 	{
 	    isize = POPCOUNT(inducedcycle[i]);
-	    if (isize > 6) continue;
+	    if (isize == 3 || isize > 6) continue;
 
 	    for (j = i+1; j < cyclecount; ++j)
 	    {
 		jsize = POPCOUNT(inducedcycle[j]);
-	        if (jsize > 6 || isize+jsize == 12) continue;
+	        if (jsize == 3 || jsize > 6 || isize+jsize == 12) continue;
 
 	        w = inducedcycle[i] & inducedcycle[j];
 	        if (POPCOUNT(w) != 2) continue;
@@ -1668,12 +1883,13 @@ surgeproc(FILE *outfile, graph *gin, int n)
 		TAKEBIT(k,ww);
 		edge[k].maxmult = 0;
 		edge[FIRSTBITNZ(ww)].maxmult = 0;
+		wxy = edge[k].xy ^ edge[FIRSTBITNZ(ww)].xy;
 		
 		ww = (inducedcycle[i] | inducedcycle[j]) & ~w;
 		while (ww)
 		{
 		    TAKEBIT(k,ww);
-		    if ((edge[k].xy & w)) edge[k].maxmult = 0;
+		    if ((edge[k].xy & wxy)) edge[k].maxmult = 0;
 		}
 	    }	
 	}
@@ -1694,14 +1910,18 @@ surgeproc(FILE *outfile, graph *gin, int n)
                 w = inducedcycle[i] & inducedcycle[j];
                 if (POPCOUNT(w) != 3) continue;
 
+		ww = inducedcycle[i] | inducedcycle[j];
+
 		TAKEBIT(e1,w);
 		TAKEBIT(e2,w);
 		e3 = FIRSTBITNZ(w);
 
-		ww = edge[e1].xy ^ edge[e2].xy ^ edge[e3].xy;
-		if ((edge[e1].xy & ww)) edge[e1].maxmult = 0;
-		if ((edge[e2].xy & ww)) edge[e2].maxmult = 0;
-		if ((edge[e3].xy & ww)) edge[e3].maxmult = 0;
+		wxy = edge[e1].xy ^ edge[e2].xy ^ edge[e3].xy;
+		while (ww)
+		{
+		    TAKEBIT(k,ww);
+		    if ((edge[k].xy & wxy)) edge[k].maxmult = 0;
+		}
 	    }
 	}
     }
@@ -1709,7 +1929,7 @@ surgeproc(FILE *outfile, graph *gin, int n)
     if (bad5)  /* No A=A=A, whether in ring or not */
     {
 	for (i = 0; i < n; ++i)
-	if (POPCOUNT(g[i]) == 2)
+	if (deg[i] == 2)
 	{
 	    x = FIRSTBITNZ(g[i]);
 	    y = FIRSTBITNZ(g[i]&~bit[x]);
@@ -1729,13 +1949,13 @@ surgeproc(FILE *outfile, graph *gin, int n)
     }
 
     if (bad6)  /* No A=A=A in rings up to length 8 */
-    {
+    {                           
 	cycle8 = 0; 
 	for (i = 0; i < cyclecount; ++i)
 	    if (POPCOUNT(inducedcycle[i]) <= 8) cycle8 |= inducedcycle[i];
 
 	for (i = 0; i < n; ++i)
-	if (POPCOUNT(g[i]) == 2)
+	if (deg[i] == 2)
 	{
 	    x = FIRSTBITNZ(g[i]);
 	    y = FIRSTBITNZ(g[i]&~bit[x]);
@@ -1747,7 +1967,7 @@ surgeproc(FILE *outfile, graph *gin, int n)
 	         if (e1 < e2) edge[e2].allenemate1 = e1;
 	         else         edge[e1].allenemate1 = e2;
 	    }
-	    else
+	    else 
 	    {
 	         if (e1 < e2) edge[e2].allenemate2 = e1;
 	         else         edge[e1].allenemate2 = e2;
@@ -1770,36 +1990,39 @@ surgeproc(FILE *outfile, graph *gin, int n)
 /****************************************************************/
 
 static void
-decode_formula(char *formula, int *nv, int *mine, int *maxe, int *maxd)
+decode_formula(char *formula, int *nv,
+               int *mine, int *maxe, int *maxd, int *maxc)
 /* Parse the input formula. The number of hydrogens goes to hydrogens.
-   The other distinct atoms go to atomlist[0..numtypes-1] and 
-   atomcount[0..numtypes-1].
-   *mine and *maxd have an edge range from -e and are updated.
-   *nv gets the number of non-H atoms. *maxd gets the greatest valence.
+   The other distinct elements go to elementlist[0..numtypes-1] and 
+   elementcount[0..numtypes-1].
+   *mine and *maxe have an edge range from -e and are updated.
+   *mind and *maxc come from -d and -c and are updated.
+   *nv gets the number of non-H atoms.
 */
 {
-    int i,j,d,mult,val,cnt,totval,dbe;
-    int localmine,localmaxe;
+    int i,j,d,mult,val,cnt,totval,dbe,forced;
+    int maxvcoord,localmine,localmaxe,localmaxd,xi,yi;
     char *s1,*s2,*p;
     int count[FORMULALEN];
-    char s[20];
 
-    if (NUMATOMTYPES > FORMULALEN)
+    if (numelements > FORMULALEN)
         gt_abort(">E surge : increase FORMULALEN\n");
 
-    for (i = 0; i < NUMATOMTYPES; ++i) count[i] = 0;
+    /* First we fill in count[*], which is parallel to element[*] */
+
+    for (i = 0; i < numelements; ++i) count[i] = 0;
 
     for (s1 = formula; *s1 != '\0'; s1 = s2)
     {
-	if (!isupper(*s1)) gt_abort(">E surge : unknown atom name\n");
+	if (!isupper(*s1)) gt_abort(">E surge : unknown element name\n");
         for (s2 = s1+1; islower(*s2); ++s2) {}
-	for (i = 0; i < NUMATOMTYPES; ++i)
+	for (i = 0; i < numelements; ++i)
         {
-	    for (j = 0; atom[i].name[j] != '\0'
-                            && s1+j != s2 && atom[i].name[j] == s1[j]; ++j) {}
-	    if (atom[i].name[j] == '\0' && s1+j == s2) break;
+	    for (j = 0; element[i].inputname[j] != '\0'
+                  && s1+j != s2 && element[i].inputname[j] == s1[j]; ++j) {}
+	    if (element[i].inputname[j] == '\0' && s1+j == s2) break;
 	}
-	if (i == NUMATOMTYPES) gt_abort(">E surge : unknown atom name\n");
+	if (i == numelements) gt_abort(">E surge : unknown element name\n");
 	s1 = s2;
 	if (!isdigit(*s2))
 	    ++count[i];
@@ -1811,64 +2034,112 @@ decode_formula(char *formula, int *nv, int *mine, int *maxe, int *maxd)
 	}
     }
 
-    numtypes = 0;
-    *nv = totval = 0;
-    hydrogens = 0;
-    min1 = min12 = max34 = max4 = 0;
-    dbe = 2; /* Calculate 2*dbe first */
-    *maxd = 0;
-    valencesum = 0;
+    /* Next we collect elements actually used into elementtype[0..numtypes-1]
+       and elementcount[0..numtypes-1], except for H which we just count. */
 
-    for (i = 0; i < NUMATOMTYPES; ++i)
+    numtypes = hydrogens = 0;
+    for (i = 0; i < numelements; ++i)
     {
-	cnt = count[i];
-	if (cnt > 0)
-	{
-	    val = atom[i].valence;
-	    totval += val*cnt;
-	    if (HYDROGEN(i))
-	    {
-		hydrogens = cnt;
-		dbe -= cnt;
-	    }
+        cnt = count[i];
+        if (cnt > 0)
+        {
+	    if (ISHYDROGEN(i))
+                hydrogens = cnt;
 	    else
 	    {
-		*nv += cnt;
-	        atomtype[numtypes] = i;
-	        atomcount[numtypes] = cnt;
-	        ++numtypes;
-		if (val <= 1) min1 += cnt;
-		if (val <= 2) min12 += cnt;
-		if (val >= 3) max34 += cnt;
-		if (val >= 4) max4 += cnt;
-		if (val == 1) dbe -= cnt;
-		if (val == 3) dbe += cnt;
-		if (val == 4) dbe += 2*cnt;
-		if (val > *maxd) *maxd = val;
-		valencesum += cnt * val;
+		elementtype[numtypes] = i;
+		elementcount[numtypes] = cnt;
+		++numtypes;
 	    }
+	}
+    }
+
+    /* Next we adjust *maxd and *maxc, as well as the maxcoord
+       fields of elements */
+
+    maxvcoord = 0;
+    for (i = 0; i < numtypes; ++i)
+	if (element[elementtype[i]].maxcoord > maxvcoord)
+	    maxvcoord = element[elementtype[i]].maxcoord;
+    if (maxvcoord < *maxc)
+	*maxc = maxvcoord;
+    else if (maxvcoord > *maxc)
+	for (i = 0; i < numtypes; ++i)
+	    if (element[elementtype[i]].maxcoord > *maxc)
+		element[elementtype[i]].maxcoord = *maxc;
+    if (*maxd > *maxc) *maxd = *maxc;
+
+    /* Next we find some bounds on the number of vertices
+       with various simple degrees. */
+
+    min1 = min12 = max34 = max4 = 0;
+    for (i = 0; i < numelements; ++i)
+    {
+	if (!ISHYDROGEN(i))
+	{
+	    cnt = count[i];
+	    val = element[i].maxcoord;
+	    if (val <= 1) min1 += cnt;   // Check logic
+	    if (val <= 2) min12 += cnt;
+	    if (val >= 3) max34 += cnt;
+	    if (val >= 4) max4 += cnt;
+		// Could add max5, could use both bounds everywhere
         }
     }
+
+    /* Now sort by decreasing maximum coordination number */
+
+    for (i = 1; i < numtypes; ++i)  /* really 1 */
+    {
+	xi = elementtype[i];
+	yi = elementcount[i];
+	for (j = i; element[elementtype[j-1]].maxcoord < element[xi].maxcoord; )
+        {
+	    elementtype[j] = elementtype[j-1];
+	    elementcount[j] = elementcount[j-1];
+	    if (--j < 1) break;
+	}
+	elementtype[j] = xi;
+        elementcount[j] = yi;
+    }
+
+    /* Make "canonical" molecule name (used for -A output) */
 
     p = canonform;
     for (i = 0; i < numtypes; ++i)
     {
-	PUTSTR(atom[atomtype[i]].name);
-	if (atomcount[i] > 1) PUTINT(atomcount[i]);
+	PUTSTR(element[elementtype[i]].inputname);
+	if (elementcount[i] > 1) PUTINT(elementcount[i]);
     }
     if (hydrogens > 0) PUTSTR("H");
     if (hydrogens > 1) PUTINT(hydrogens);
     *p = '\0';
 
+    /* Calculate *nv, totalval, forced which all exclude H */
+
+    *nv = forced = 0;
+    totval = hydrogens;
+    for (i = 0; i < numtypes; ++i)
+    {
+	j = elementtype[i];
+	cnt = elementcount[i];
+	*nv += cnt;
+	totval += cnt * element[j].valence;
+	if (element[j].valence > element[j].maxcoord)
+	    forced += element[j].valence - element[j].maxcoord;
+    }
+    forced = (forced+1) / 2;
+
     if ((totval & 1)) gt_abort(">E surge : impossible parity\n");
-    if ((dbe & 1) || dbe < 0)
-        gt_abort(">E surge : DBE non-integer or negative\n");
-    dbe /= 2;
+    dbe = totval / 2 - (*nv + hydrogens - 1) - forced;
+    if (dbe < 0) gt_abort(">E surge : negative DBE\n");
     if (*nv > MAXN) gt_abort(">E surge : too many non-hydrogen atoms\n");
     if (*nv == 0) gt_abort(">E surge : only hydrogen\n");
+    valencesum = totval - hydrogens;
 
     localmine = *nv - 1;
     localmaxe = localmine + dbe;
+    if (localmaxe > *nv * (*nv-1) / 2) localmaxe = *nv * (*nv-1) / 2;
 
     if (localmine > *mine) *mine = localmine;
     if (localmaxe < *maxe) *maxe = localmaxe;
@@ -1877,33 +2148,26 @@ decode_formula(char *formula, int *nv, int *mine, int *maxe, int *maxd)
     fprintf(stderr,"%s  ",canonform);
     fprintf(stderr,"H=%d",hydrogens);
     for (i = 0; i < numtypes; ++i)
-        fprintf(stderr," %s=%d",atom[atomtype[i]].name,atomcount[i]);
+        fprintf(stderr," %s=%d",element[elementtype[i]].inputname,elementcount[i]);
 
-    fprintf(stderr,"  nv=%d edges=%d-%d DBE=%d maxd=%d\n",
-            *nv,*mine,*maxe,dbe,*maxd);
+    fprintf(stderr,"  nv=%d edges=%d-%d DBE=%d maxd=%d maxc=%d\n",
+            *nv,*mine,*maxe,dbe,*maxd,*maxc);
     if (*maxe > MAXNE) gt_abort(">E surge : too many edges\n");
 
     for (d = 1; d <= *maxd; ++d)
     {
 	for (i = 0; i < numtypes; ++i)
 	{
-	    val = atom[atomtype[i]].valence;
+	    val = element[elementtype[i]].maxcoord;
 	    if (d <= val) maxtype[d] = i;
 	}
     }
-
-#if 0
-    fprintf(stderr,"Legal for each degree: ");
-    for (d = 1; d <= *maxd; ++d)
-	fprintf(stderr," %d:%d-%d",d,0,maxtype[d]);
-    fprintf(stderr,"\n");
-#endif
 }
 
 /****************************************************************/
 
 static void
-start_geng(int maxd, int n,
+start_geng(int n, int maxd, int maxc,
            int mine, int maxe, char *extra1, long res, long mod)
 /* start geng with arguments, extra1 before n, extra2 after n */
 {
@@ -1915,9 +2179,12 @@ start_geng(int maxd, int n,
     char edgecount[40];
 
     mind = 1;
-    if (numtypes == 1 && atom[atomtype[0]].valence == 4
-                                     && hydrogens == 0)
-	mind = 2;
+    if (hydrogens == 0)
+    {
+	for (i = 0; i < numtypes; ++i)
+	    if (element[elementtype[i]].valence < 4) break;
+	if (i == numtypes) mind = 2;
+    }
 
     if (n == 1) mind = 0;
 
@@ -1970,15 +2237,116 @@ start_geng(int maxd, int n,
 
 /*******************************************************************/
 
+static void
+processEswitch(char **ps, char *id)
+/* Process -E starting at *ps = the character after E, and update *ps.
+   The value has the form <inputname>[,<name>]<valence>[<maxcoord>],
+   where <inputname> and <name> are either <upper> or <upper><lower> and
+   <valence> and <maxcoord> are single digits. Inputname comes first. */
+{
+    char inputname[3],name[3];
+    int valence,maxcoord;
+    char *s;
+    int state,err;
+
+    s = *ps;
+    state = 0;
+
+    while (state < 5)
+    {
+        switch (state) 
+        {
+	   case 0:
+		if (!isupper(*s))
+		{
+		    state = 6;
+		    break;
+		}
+		inputname[0] = *s++;
+		if (islower(*s))
+		{
+		    inputname[1] = *s++;
+		    inputname[2] = '\0';
+		}
+		else
+		    inputname[1] = '\0';
+		state = 1;
+		break;
+	   case 1:
+		if (*s == ',')
+		{
+		    ++s;
+		    state = 2;
+		}
+		else
+		{
+		    name[0] = inputname[0];
+		    name[1] = inputname[1];
+		    name[2] = inputname[2];
+		    state = 3;
+		}
+		break;
+	    case 2:
+		if (!isupper(*s))
+		{
+		    state = 6;
+		    break;
+		}
+		name[0] = *s++;
+		if (islower(*s))
+		{
+		    name[1] = *s++;
+		    name[2] = '\0';
+		}
+		else
+		    name[1] = '\0';
+		state = 3;
+		break;
+	    case 3:
+		if (!isdigit(*s))
+		{
+		    state = 7;
+		    break;
+		}
+		valence = *s++ - '0';
+		if (!isdigit(*s))
+		    maxcoord = valence;
+		else
+		    maxcoord = *s++ - '0';
+		state = 5;
+		break;
+	}
+    }
+
+    if (state == 6)
+    {
+	fprintf(stderr,">E %s : bad element name\n",id);
+	exit(1);
+    }
+    if (state == 7)
+    {
+	fprintf(stderr,">E %s : bad valence or maxcoord\n",id);
+	exit(1);
+    }
+
+    *ps = s;
+
+    addelement(inputname,name,valence,maxcoord);
+}
+
+#define SWELEMENT(c,id) if (sw==c) {processEswitch(&arg,id);}
+
+/*******************************************************************/
+
 int
 main(int argc, char *argv[])
 {
     int argnum,i,j;
     boolean badargs,Gswitch,mswitch,Oswitch,eswitch,notriples;
-    boolean oswitch,Bswitch;
+    boolean oswitch,Bswitch,cswitch,Dswitch;
     char *extra1,*extra2,*formula,*arg,sw,*outfilename;
     long res,mod;
-    int mine,maxe,maxd;
+    int mine,maxe,maxd,maxc;
     long eminval,emaxval;
     double t1,t2;
     long badlist[BADLISTS];
@@ -1988,12 +2356,23 @@ main(int argc, char *argv[])
 
     nauty_check(WORDSIZE,1,1,NAUTYVERSIONID);
 
+    maxindex = 0;
+    for (i = 0; i < MAXELEMENTS; ++i)
+	if (element[i].inputname == NULL) break;
+	else if (element[i].index < maxindex && !ISHYDROGEN(i))
+	    maxindex = element[i].index;
+    numelements = i;
+
+#ifdef SURGEPLUGIN_INIT
+    SURGEPLUGIN_INIT;
+#endif
+
     argnum = 0;
     badargs = verbose = Gswitch = mswitch = FALSE;
     uswitch = eswitch = notriples = smiles = FALSE;
     oswitch = gzip = alphabetic = Bswitch = FALSE;
     tswitch = fswitch = pswitch = bipartite = FALSE;
-    planar = xswitch = FALSE;
+    cswitch = planar = xswitch = Dswitch = FALSE;
     Oswitch = FALSE; outlevel = 4;
     extra1 = extra2 = formula = NULL;
     bad1 = bad2 = bad3 = bad4 = bad5 = bad6 = bad7 = bad8 = bad9 = FALSE;
@@ -2025,6 +2404,8 @@ main(int argc, char *argv[])
 		}
 		else SWRANGE('m',"/",mswitch,res,mod,"surge -m")
                 else SWINT('O',Oswitch,outlevel,"surge -O")
+                else SWINT('c',cswitch,maxc,"surge -c")
+                else SWINT('d',Dswitch,maxd,"surge -d")
 		else SWBOOLEAN('u',uswitch)
 		else SWBOOLEAN('v',verbose)
 		else SWBOOLEAN('T',notriples)
@@ -2039,6 +2420,10 @@ main(int argc, char *argv[])
                 else SWRANGE('t',":-",tswitch,min3rings,max3rings,"surge -t")
                 else SWRANGE('f',":-",fswitch,min4rings,max4rings,"surge -f")
                 else SWRANGE('p',":-",pswitch,min5rings,max5rings,"surge -p")
+		else SWELEMENT('E',"surge -E")
+#ifdef SURGEPLUGIN_SWITCHES
+		else SURGEPLUGIN_SWITCHES
+#endif
                 else badargs = TRUE;
 
                 if (Bswitch)
@@ -2070,8 +2455,18 @@ main(int argc, char *argv[])
         }
     }
 
+    if (badargs)
+    {
+        fprintf(stderr,">E Usage: %s\n",USAGE EXTRAUSAGE);
+        GETHELP;
+        exit(1);
+    }
+
     if (Oswitch && (outlevel <= 0 || outlevel >= 5))
         gt_abort(">E surge : unknown value for -O\n");
+
+    if (!cswitch) maxc = 4;
+    if (!Dswitch) maxd = 4;
 
 #ifndef ZLIB
     if (gzip)
@@ -2155,10 +2550,10 @@ main(int argc, char *argv[])
 	maxe = NOLIMIT;
     }
 
-    decode_formula(formula,&nv,&mine,&maxe,&maxd);
+    decode_formula(formula,&nv,&mine,&maxe,&maxd,&maxc);
 
     t1 = CPUTIME;
-    start_geng(maxd,nv,mine,maxe,extra1,res,mod);
+    start_geng(nv,maxd,maxc,mine,maxe,extra1,res,mod);
 #ifdef ZLIB
     if (gzip)
 	if (gzclose(gzoutfile) != Z_OK)
@@ -2182,6 +2577,10 @@ main(int argc, char *argv[])
     }
 
     if (needcycles) fprintf(stderr,"Max cycles = %d\n",maxcycles);
+
+#ifdef SURGEPLUGIN_SUMMARY
+    SURGEPLUGIN_SUMMARY
+#endif
 
     fprintf(stderr,">Z %s %llu -> %llu -> %llu in %.2f sec\n",
 	(uswitch ? "generated" : "wrote"),
