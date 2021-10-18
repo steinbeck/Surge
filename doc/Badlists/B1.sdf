@@ -8,6 +8,7 @@ Forbidden substructure list for MOLGEN 5.0
   1  2  3  0  0  0  0
   1  3  1  0  0  0  0
   2  3  1  0  0  0  0
+M  END
 $$$$
 fs02
 Forbidden substructure list for MOLGEN 5.0
@@ -21,6 +22,7 @@ Forbidden substructure list for MOLGEN 5.0
   1  3  1  0  0  0  0
   2  4  1  0  0  0  0
   3  4  1  0  0  0  0
+M  END
 $$$$
 fs03
 Forbidden substructure list for MOLGEN 5.0
@@ -36,6 +38,7 @@ Forbidden substructure list for MOLGEN 5.0
   2  5  1  0  0  0  0
   3  4  1  0  0  0  0
   4  5  1  0  0  0  0
+M  END
 $$$$
 fs04
 Forbidden substructure list for MOLGEN 5.0
@@ -53,6 +56,7 @@ Forbidden substructure list for MOLGEN 5.0
   3  4  1  0  0  0  0
   4  5  1  0  0  0  0
   5  6  1  0  0  0  0
+M  END
 $$$$
 fs05
 Forbidden substructure list for MOLGEN 5.0
