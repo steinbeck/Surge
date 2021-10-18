@@ -1,4 +1,4 @@
-fs12
+fs01
 Forbidden substructure list for MOLGEN 5.0
 
   4  5  0  0  0  0  0  0  0  0999 V2000                  
@@ -11,8 +11,9 @@ Forbidden substructure list for MOLGEN 5.0
   2  3  2  0  0  0  0
   2  4  1  0  0  0  0
   3  4  1  0  0  0  0
+M  END
 $$$$
-fs13
+fs02
 Forbidden substructure list for MOLGEN 5.0
 
   4  5  0  0  0  0  0  0  0  0999 V2000                  
@@ -25,8 +26,9 @@ Forbidden substructure list for MOLGEN 5.0
   2  3  1  0  0  0  0
   2  4  2  0  0  0  0
   3  4  1  0  0  0  0
+M  END
 $$$$
-fs14
+fs03
 Forbidden substructure list for MOLGEN 5.0
 
   5  6  0  0  0  0  0  0  0  0999 V2000                  
@@ -41,8 +43,9 @@ Forbidden substructure list for MOLGEN 5.0
   2  4  1  0  0  0  0
   3  5  1  0  0  0  0
   4  5  1  0  0  0  0
+M  END
 $$$$
-fs15
+fs04
 Forbidden substructure list for MOLGEN 5.0
 
   5  6  0  0  0  0  0  0  0  0999 V2000                  
@@ -57,8 +60,9 @@ Forbidden substructure list for MOLGEN 5.0
   2  4  2  0  0  0  0
   3  5  1  0  0  0  0
   4  5  1  0  0  0  0
+M  END
 $$$$
-fs16
+fs05
 Forbidden substructure list for MOLGEN 5.0
 
   5  6  0  0  0  0  0  0  0  0999 V2000                  
@@ -73,8 +77,9 @@ Forbidden substructure list for MOLGEN 5.0
   2  4  1  0  0  0  0
   3  5  1  0  0  0  0
   4  5  1  0  0  0  0
+M  END
 $$$$
-fs17
+fs06
 Forbidden substructure list for MOLGEN 5.0
 
   6  7  0  0  0  0  0  0  0  0999 V2000                
@@ -91,8 +96,9 @@ Forbidden substructure list for MOLGEN 5.0
   3  6  1  0  0  0  0
   4  5  1  0  0  0  0
   5  6  1  0  0  0  0
+M  END
 $$$$
-fs18
+fs07
 Forbidden substructure list for MOLGEN 5.0
 
   6  7  0  0  0  0  0  0  0  0999 V2000                
@@ -109,8 +115,9 @@ Forbidden substructure list for MOLGEN 5.0
   3  6  1  0  0  0  0
   4  5  1  0  0  0  0
   5  6  1  0  0  0  0
+M  END
 $$$$
-fs19
+fs08
 Forbidden substructure list for MOLGEN 5.0
 
   6  7  0  0  0  0  0  0  0  0999 V2000                 
@@ -127,8 +134,9 @@ Forbidden substructure list for MOLGEN 5.0
   3  6  1  0  0  0  0
   4  5  1  0  0  0  0
   5  6  1  0  0  0  0
+M  END
 $$$$
-fs20
+fs09
 Forbidden substructure list for MOLGEN 5.0
 
   7  8  0  0  0  0  0  0  0  0999 V2000                 
@@ -147,8 +155,9 @@ Forbidden substructure list for MOLGEN 5.0
   4  5  1  0  0  0  0
   5  6  1  0  0  0  0
   6  7  1  0  0  0  0
+M  END
 $$$$
-fs21
+fs10
 Forbidden substructure list for MOLGEN 5.0
 
   7  8  0  0  0  0  0  0  0  0999 V2000                 
@@ -167,8 +176,9 @@ Forbidden substructure list for MOLGEN 5.0
   4  5  1  0  0  0  0
   5  6  1  0  0  0  0
   6  7  1  0  0  0  0
+M  END
 $$$$
-fs22
+fs11
 Forbidden substructure list for MOLGEN 5.0
 
   6  7  0  0  0  0  0  0  0  0999 V2000                  
@@ -185,8 +195,9 @@ Forbidden substructure list for MOLGEN 5.0
   3  6  1  0  0  0  0
   4  5  1  0  0  0  0
   5  6  1  0  0  0  0
+M  END
 $$$$
-fs23
+fs12
 Forbidden substructure list for MOLGEN 5.0
 
   7  8  0  0  0  0  0  0  0  0999 V2000                  
@@ -205,8 +216,9 @@ Forbidden substructure list for MOLGEN 5.0
   4  7  1  0  0  0  0
   5  6  1  0  0  0  0
   6  7  1  0  0  0  0
+M  END
 $$$$
-fs24
+fs13
 Forbidden substructure list for MOLGEN 5.0
 
   7  8  0  0  0  0  0  0  0  0999 V2000                
