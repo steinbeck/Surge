@@ -1,5 +1,5 @@
-fs36
-Forbidden substructure list for MOLGEN 5.0
+fs01
+Forbidden substructure list for SURGE
 
   5  7  0  0  0  0  0  0  0  0999 V2000                  
   202.0000  143.0000    0.0000 A   0  0  0  1  0  0  0  0  0  0  0  0
@@ -14,9 +14,10 @@ Forbidden substructure list for MOLGEN 5.0
   2  3  1  0  0  0  0
   2  5  1  0  0  0  0
   3  4  1  0  0  0  0
+M  END
 $$$$
-fs37
-Forbidden substructure list for MOLGEN 5.0
+fs02
+Forbidden substructure list for SURGE
 
   6  9  0  0  0  0  0  0  0  0999 V2000                  
   279.0000  150.0000    0.0000 A   0  0  0  1  0  0  0  0  0  0  0  0
