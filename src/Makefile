@@ -4,7 +4,7 @@ VERSION=0_9
 # nauty include files are, and NAUTYLIB to be where libraries
 # like nautyW1.a are. 
 
-NAUTY=/home/bdm/nauty
+NAUTY=${NAUTY_HOME}
 NAUTYLIB=${NAUTY}
 
 SURGE=-g -I ${NAUTY} -DWORDSIZE=32 -DMAXN=WORDSIZE -DOUTPROC=surgeproc \
