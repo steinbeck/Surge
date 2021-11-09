@@ -15,9 +15,10 @@ RUN curl -o nauty27r3.tar.gz http://users.cecs.anu.edu.au/~bdm/nauty/nauty27r3.t
   && tar xzvf nauty27r3.tar.gz \
   && cd nauty27r3 \
   && ./configure && make
-COPY src/surge.c /tmp/nauty27r3
+ENV NAUTY_HOME=/tmp/nauty27r3
+COPY src/surge.c $NAUTY_HOME
 COPY src/Makefile /tmp/
-WORKDIR /tmp/nauty27r3
+WORKDIR $NAUTY_HOME
 RUN make -f ../Makefile clean ; make -f ../Makefile surge
 
 FROM ubuntu:21.04
