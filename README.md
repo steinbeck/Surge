@@ -13,7 +13,7 @@ For large sets of structures, the -z option for compressing the output in gzip f
 `surge -help` will show all options:
 
 <p align="center">
-  <img src="doc/logo.png" alt="drawing" width="500"
+  <img src="doc/logo.png" alt="drawing" width="400"
 </p>
 
 ```
