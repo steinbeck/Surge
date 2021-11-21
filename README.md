@@ -1,4 +1,6 @@
-# Surge
+<img src="doc/logo2.png" alt="drawing" width="100" align = "right"/>
+
+# Surge: A Chemical Graph Generator based on Canonical Augmentation
 ## About
 Surge is a chemical structure generator based on the Nauty package and thereby on the principles of canonical augmentation.
 More precisely, Surge generates all non-isomorphic constitutional isomers of a given molecular formula.
@@ -9,6 +11,10 @@ Surge is a command line tool. Running `surge -u C10H16O` will generate the 45245
 For large sets of structures, the -z option for compressing the output in gzip format will come in handy.
 
 `surge -help` will show all options:
+
+<p align="center">
+  <img src="doc/logo.png" alt="drawing" width="500"
+</p>
 
 ```
 Usage: surge [-oFILE] [-z] [-u|-A|-S] [-T] [-e#|-e#:#] [-d#] [-c#] [-m#/#] formula
