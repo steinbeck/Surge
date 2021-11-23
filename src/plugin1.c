@@ -9,7 +9,7 @@ static boolean Fswitch = FALSE;
 static long Fmin,Fmax;
 
 #define SURGEPLUGIN_STEP1 \
- { int ii,Fval=0; \
+ { int ii,Fval; Fval=0; \
    for (ii = 0; ii < n; ++ii) if (deg[ii] == 4) ++Fval; \
    if (Fswitch && (Fval < Fmin || Fval > Fmax)) return; }
 

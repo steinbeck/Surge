@@ -1,4 +1,5 @@
-/* This is a plugin for surge that optionally forbids adjacent oxygen atoms. */
+/* This is a plugin for surge that optionally forbids
+   adjacent oxygen atoms. */
 
 #define HELPTEXT2 \
 " This version forbids adjacent oxygen atoms if -Y is given.\n"

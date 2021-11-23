@@ -58,8 +58,8 @@ atomcode(char *name)
 
     if (i == NUMATOMS)
     {
-	fprintf(stderr,">E unknown element %s\n",name);
-	exit(1);
+        fprintf(stderr,">E unknown element %s\n",name);
+        exit(1);
     }
 
     return i;
@@ -87,14 +87,14 @@ readmolecule()
     numlines = 1;
     while (fgets(line[numlines],82,stdin) != NULL)
     {
-	if (strcmp(line[numlines],"$$$$\n") == 0
+        if (strcmp(line[numlines],"$$$$\n") == 0
                  || strcmp(line[numlines],"$$$$\r\n") == 0
                  || strcmp(line[numlines],"$$$$\r\r\n") == 0)
         {
-	    if (numlines < 6) gt_abort(">E too few lines\n");
+            if (numlines < 6) gt_abort(">E too few lines\n");
             return numlines+1;
-	}
-	++numlines;
+        }
+        ++numlines;
     }
 
     gt_abort(">E EOF encountered\n");
@@ -117,15 +117,15 @@ writeascii(int na, int *which, int *hyd,
 
     for (i = 0; i < na; ++i)
     {
-	printf("%d:%s",i,atom[which[i]]);
-	if (hyd[i] == 1) printf("H ");
-	else if (hyd[i] > 1) printf("H%d ",hyd[i]);
-	else printf(" ");
+        printf("%d:%s",i,atom[which[i]]);
+        if (hyd[i] == 1) printf("H ");
+        else if (hyd[i] > 1) printf("H%d ",hyd[i]);
+        else printf(" ");
     }
 
     for (i = 0; i < nb; ++i)
     {
-	printf(" %d%c%d",u[i],(mult[i]==1?'-':mult[i]==2?'=':'#'),v[i]);
+        printf(" %d%c%d",u[i],(mult[i]==1?'-':mult[i]==2?'=':'#'),v[i]);
     }
     printf("\n");
 }
@@ -157,8 +157,8 @@ makecanoncode(int na, int *which, int *hyd,
     n = 2*na + nhyd;
     for (i = 0; i < na; ++i)
     {
-	weight[i] = which[i];
-	weight[na+i] = which[i] + 128;
+        weight[i] = which[i];
+        weight[na+i] = which[i] + 128;
     }
     for (i = 2*na; i < n; ++i) weight[i] = 0;
     setlabptn(weight,lab,ptn,n);
@@ -169,22 +169,22 @@ makecanoncode(int na, int *which, int *hyd,
     nh = 2*na;
     for (i = 0; i < na; ++i)
     {
-	ADDE(i,i+na);
-	for (j = 0; j < hyd[i]; ++j)
-	{
-	    ADDE(i,nh);
-	    ++nh;
-	}
+        ADDE(i,i+na);
+        for (j = 0; j < hyd[i]; ++j)
+        {
+            ADDE(i,nh);
+            ++nh;
+        }
     }
 
     if (nh != n) gt_abort(">E huh?\n");
 
     for (i = 0; i < nb; ++i)
     {
-	if (mult[i] == 1 || mult[i] == 3)
-	    ADDE(u[i],v[i]);
-	if (mult[i] == 2 || mult[i] == 3)
-	    ADDE(na+u[i],na+v[i]);
+        if (mult[i] == 1 || mult[i] == 3)
+            ADDE(u[i],v[i]);
+        if (mult[i] == 2 || mult[i] == 3)
+            ADDE(na+u[i],na+v[i]);
     }
 
     options.getcanon = TRUE;
@@ -195,20 +195,20 @@ makecanoncode(int na, int *which, int *hyd,
     code2 = n + 17*nb;
     for (i = 0; i < n; ++i)
     {
-	code1 = 1237LLU * code1 + FUZZ1(MV(h[i]));
+        code1 = 1237LLU * code1 + FUZZ1(MV(h[i]));
         code2 = 1233457LLU * code2 + FUZZ2(MV(h[i]));
     }
 
     p = code;
     for (i = 0; i < 8; ++i)
     {
-	*p++ = glyph[code1%64];
-	code1 >>= 8;
+        *p++ = glyph[code1%64];
+        code1 >>= 8;
     } 
     for (i = 0; i < 8; ++i)
     {
-	*p++ = glyph[code2%64];
-	code2 >>= 8;
+        *p++ = glyph[code2%64];
+        code2 >>= 8;
     } 
 
     *p = '\0';
@@ -239,63 +239,63 @@ decode(int numlines, int *n, int *which, int *hyd,
 
     for (i = 0; i < nv; ++i) 
     {
-	if (sscanf(line[4+i],"%lf%lf%lf%s%d%d%d%d%d%d",&x,&y,&z,
+        if (sscanf(line[4+i],"%lf%lf%lf%s%d%d%d%d%d%d",&x,&y,&z,
                                     s,&j1,&j2,&j3,&j4,&j5,&j6) != 10)
-	    gt_abort(">E Can't read atom line\n");
-	which[i] = atomcode(s);
-	if (which[i] != HYDROGEN)
-	{
-	    if (j4 > 0) hyd[i] = j4-1;
-	    else        hyd[i] = 0;
-	    ++*n;
+            gt_abort(">E Can't read atom line\n");
+        which[i] = atomcode(s);
+        if (which[i] != HYDROGEN)
+        {
+            if (j4 > 0) hyd[i] = j4-1;
+            else        hyd[i] = 0;
+            ++*n;
 
-	    if (j6 > 0) val[i] = j6;
-	    else        val[i] = 0;
+            if (j6 > 0) val[i] = j6;
+            else        val[i] = 0;
 
-	    needval[i] = (j4 == 0) && (j6 == 0);
-	}
+            needval[i] = (j4 == 0) && (j6 == 0);
+        }
     }
 
     *nb = 0;
 
     for (i = 0; i < ne; ++i)
     {
-	if (sscanf(line[4+nv+i],"%d%d%d",&j1,&j2,&j3) != 3)
+        if (sscanf(line[4+nv+i],"%d%d%d",&j1,&j2,&j3) != 3)
             gt_abort(">E Can't read bond line\n");
-	if (j3 < 1 || j3 > 3)
-	    gt_abort(">E irregular multiplicity, maybe aromatic\n");
-	if (which[j1-1] != HYDROGEN && which[j2-1] != HYDROGEN)
-	{
-	    u[*nb] = j1-1;
-	    v[*nb] = j2-1;
-	    mult[*nb] = j3;
-	    ++*nb;
-	}
-	else if (which[j1-1] == HYDROGEN)
-	    ++hyd[j2-1];
-	else if (which[j2-1] == HYDROGEN)
-	    ++hyd[j1-1];
-	else
-	    gt_abort(">E the impossible happened\n");
+        if (j3 < 1 || j3 > 3)
+            gt_abort(">E irregular multiplicity, maybe aromatic\n");
+        if (which[j1-1] != HYDROGEN && which[j2-1] != HYDROGEN)
+        {
+            u[*nb] = j1-1;
+            v[*nb] = j2-1;
+            mult[*nb] = j3;
+            ++*nb;
+        }
+        else if (which[j1-1] == HYDROGEN)
+            ++hyd[j2-1];
+        else if (which[j2-1] == HYDROGEN)
+            ++hyd[j1-1];
+        else
+            gt_abort(">E the impossible happened\n");
     }
 
     for (i = 0; i < *n; ++i)
     {
-	if (needval[i])
-	{
-	    q = 0;
-	    for (j = 0; j < *nb; ++j)
+        if (needval[i])
+        {
+            q = 0;
+            for (j = 0; j < *nb; ++j)
                 if (u[j] == i || v[j] == i) q += mult[j];
-	    val[i] = roundval(which[i],q+hyd[i]);
-	    hyd[i] = val[i] - q;
-	}
-	else if (val[i] > 0)
-	{
-	    q = 0;
-	    for (j = 0; j < *nb; ++j)
-		if (u[j] == i || v[j] == i) q += mult[j];
-	    hyd[i] = val[i] - q;
-	}
+            val[i] = roundval(which[i],q+hyd[i]);
+            hyd[i] = val[i] - q;
+        }
+        else if (val[i] > 0)
+        {
+            q = 0;
+            for (j = 0; j < *nb; ++j)
+                if (u[j] == i || v[j] == i) q += mult[j];
+            hyd[i] = val[i] - q;
+        }
     }
 }
 
@@ -310,8 +310,8 @@ isgood(int n, int *which, int *hyd, int nb, int *u, int *v,
 
     if (neededhash)
     {
-	makecanoncode(n,which,hyd,nb,u,v,mult,hashcode);
-	return (strcmp(neededhash,hashcode) == 0);
+        makecanoncode(n,which,hyd,nb,u,v,mult,hashcode);
+        return (strcmp(neededhash,hashcode) == 0);
     }
 
     if (nb < mine || nb > maxe) return FALSE;
@@ -320,20 +320,20 @@ isgood(int n, int *which, int *hyd, int nb, int *u, int *v,
 
     for (i = 0; i < nb; ++i)
     {
-	++deg[u[i]];
-	++deg[v[i]];
+        ++deg[u[i]];
+        ++deg[v[i]];
     }
 
     for (i = 0; i < n; ++i)
     {
-	coord = deg[i] + hyd[i];
-	if (!aswitch)
-	{
-	    if (coord > 4 && hyd[i] > 0) return FALSE;
-	    if (which[i] == NITROGEN && coord > 4) return FALSE;
-	}
-	if (deg[i] > dmax) return FALSE;
-	if (coord > cmax) return FALSE;
+        coord = deg[i] + hyd[i];
+        if (!aswitch)
+        {
+            if (coord > 4 && hyd[i] > 0) return FALSE;
+            if (which[i] == NITROGEN && coord > 4) return FALSE;
+        }
+        if (deg[i] > dmax) return FALSE;
+        if (coord > cmax) return FALSE;
     }
 
     return TRUE;
@@ -369,26 +369,26 @@ main(int argc, char *argv[])
             while (*arg != '\0')
             {
                 sw = *arg++;
-		     SWBOOLEAN('u',uswitch)
-		else SWBOOLEAN('w',wswitch)
-		else SWBOOLEAN('A',Aswitch)
-		else SWBOOLEAN('a',aswitch)
-		else SWINT('c',cswitch,maxc,"canonsdf -c")
-		else SWINT('d',dswitch,maxd,"canonsdf -d")
-		else SWRANGE('p',":-",pswitch,
-			startindex,endindex,"canonsdf -p")
-		else SWRANGE('e',":-",eswitch,mine,maxe,"canonsdf -e")
-		else if (sw == 'H')
-		{
-		    Hswitch = TRUE;
-		    neededhash = arg;
-		    break;
-		}
-		else badargs = TRUE;
-	    }
-	}
-	else
-	    badargs = TRUE;
+                     SWBOOLEAN('u',uswitch)
+                else SWBOOLEAN('w',wswitch)
+                else SWBOOLEAN('A',Aswitch)
+                else SWBOOLEAN('a',aswitch)
+                else SWINT('c',cswitch,maxc,"canonsdf -c")
+                else SWINT('d',dswitch,maxd,"canonsdf -d")
+                else SWRANGE('p',":-",pswitch,
+                        startindex,endindex,"canonsdf -p")
+                else SWRANGE('e',":-",eswitch,mine,maxe,"canonsdf -e")
+                else if (sw == 'H')
+                {
+                    Hswitch = TRUE;
+                    neededhash = arg;
+                    break;
+                }
+                else badargs = TRUE;
+            }
+        }
+        else
+            badargs = TRUE;
     }
 
     if (badargs)
@@ -415,27 +415,27 @@ main(int argc, char *argv[])
     nin = nout = 0;
     while ((numlines = readmolecule()) != 0)
     {
-	++nin;
-	if (!pswitch ||
-	    (nin >= startindex && nin <= endindex))
-	{
+        ++nin;
+        if (!pswitch ||
+            (nin >= startindex && nin <= endindex))
+        {
             decode(numlines,&n,which,hyd,&nb,u,v,mult);
-	    if (isgood(n,which,hyd,nb,u,v,mult,aswitch,
-			maxd,maxc,mine,maxe,neededhash))
-	    {
-	        ++nout;
-	        if (!uswitch)
-	        {
-		    if (wswitch) writemolecule(numlines);
-		    else if (Aswitch) writeascii(n,which,hyd,nb,u,v,mult);
-		    else
-		    {
-			makecanoncode(n,which,hyd,nb,u,v,mult,hashcode);
-			printf("%s\n",hashcode);
-		    }
-	        }
-	    }
-	}
+            if (isgood(n,which,hyd,nb,u,v,mult,aswitch,
+                        maxd,maxc,mine,maxe,neededhash))
+            {
+                ++nout;
+                if (!uswitch)
+                {
+                    if (wswitch) writemolecule(numlines);
+                    else if (Aswitch) writeascii(n,which,hyd,nb,u,v,mult);
+                    else
+                    {
+                        makecanoncode(n,which,hyd,nb,u,v,mult,hashcode);
+                        printf("%s\n",hashcode);
+                    }
+                }
+            }
+        }
     }
 
     if (uswitch)

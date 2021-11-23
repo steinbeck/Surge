@@ -9,7 +9,7 @@ static long long CHcount[5*MAXN+1];
 
 #define SURGEPLUGIN_STEP3 \
  if (carbonindex < 0) carbonindex = elementindex("C"); \
- { int ii,CHval=0; for (ii = 0; ii < n; ++ii) \
+ { int ii,CHval; CHval=0; for (ii = 0; ii < n; ++ii) \
       if (vcol[ii] == carbonindex) CHval += hyd[ii]; \
    ++CHcount[CHval]; } 
 

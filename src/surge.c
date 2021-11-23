@@ -1,5 +1,5 @@
-/* SURGE: a molecule generator based on geng.
-   Version 0.9, September 21, 2021.
+/* This is a molecule generator based on geng.
+   Version 1.0, November 11, 2021.
 
    Unix-style compilation command would be:
 
@@ -36,19 +36,18 @@
 #define HELPUSECMD
 
 #define HELPTEXT1 \
-"Make chemical graphs from a formula. Version 0.9.\n" \
+"Make chemical graphs from a formula. Version 1.0.\n" \
 "  Known elements are C,B,N,P,O,S,H,Cl,F,Br,I at their lowest valences.\n" \
 "  Higher valences can be selected using Nx (Nitrogen/5), Sx,Sy (Sulfur 4/6)\n" \
 "   Px (Phosphorus/5).\n" \
 "\n" \
 "  formula = a formula like C8H6N2\n" \
 "\n" \
-"  -E..  Define a new element (see the manual)\n" \
-"  -O#   Output stage: 1 after geng, 2 after vcolg, 3 after multig\n" \
-"        Default is to write SDF format\n" \
+"  -u    Just count, don't write\n" \
 "  -S    Output in SMILES format\n" \
 "  -A    Output in alphabetical format\n" \
-"  -u    Just count, don't write\n" \
+"  -O#   Output stage: 1 after geng, 2 after vcolg, 3 after multig\n" \
+"        Default is to write SDfile format\n" \
 "  -e# -e#:#  Restrict to given range of distinct non-H bonds\n" \
 "  -t# -t#:#  Limit number of rings of length 3\n" \
 "  -f# -f#:#  Limit number of cycles of length 4\n" \
@@ -76,6 +75,7 @@
 "  -v     Write more information to stderr\n" \
 "  -m#/#  Do only a part. The two numbers are res/mod where 0<=res<mod.\n" \
 "  -oFILE Write the output to the given file rather than to stdout.\n" \
+"  -E..  Define a new element (see the manual)\n" \
 "  -z     Write output in gzip format (only if compiled with zlib)\n"
 
 #define EXTRAUSAGE ""
@@ -163,7 +163,7 @@ static long maxvgroup,maxegroup;
 static boolean uswitch;  /* suppress output */
 static boolean verbose;  /* print more information to stderr */
 static int outlevel;  /* 1 = geng only, 2 = geng+vcolg,
-	               3 = geng+vcolg+multig, 4 = everything */
+                       3 = geng+vcolg+multig, 4 = everything */
 static boolean smiles;  /* output in SMILES format */
 static int maxbond;  /* maximum mult -1 of bonds (1 if -t, else 2) */
 
@@ -276,14 +276,14 @@ elementindex(char *inputname)
     int i;
 
     for (i = 0; i < numelements; ++i)
-	if (strcmp(element[i].inputname,inputname) == 0)
-	    break;
+        if (strcmp(element[i].inputname,inputname) == 0)
+            break;
 
     if (i < numelements) return i;
     else
     {
-	fprintf(stderr,">E Unknown element %s\n",inputname);
-	exit(1);
+        fprintf(stderr,">E Unknown element %s\n",inputname);
+        exit(1);
     }
 }
 
@@ -296,7 +296,7 @@ maxcoord==0 or maxcoord > valence then maxcoord is the same as valence. */
     int i;
 
     if (numelements == MAXELEMENTS)
-	gt_abort(">E increase MAXELEMENTS\n");
+        gt_abort(">E increase MAXELEMENTS\n");
 
     if (name == NULL) name = inputname;
     if (maxcoord == 0 || maxcoord > valence) maxcoord = valence;
@@ -306,10 +306,10 @@ maxcoord==0 or maxcoord > valence then maxcoord is the same as valence. */
 
     for (i = 0; i < numelements; ++i)
     {
-	if (strcmp(element[i].inputname,inputname) == 0)
-	{
-	    fprintf(stderr,">E element %s is already present\n",name);
-	    exit(1);
+        if (strcmp(element[i].inputname,inputname) == 0)
+        {
+            fprintf(stderr,">E element %s is already present\n",name);
+            exit(1);
         }
     }
 
@@ -326,7 +326,7 @@ maxcoord==0 or maxcoord > valence then maxcoord is the same as valence. */
     element[numelements].inputname = strdup(inputname);
     element[numelements].name = strdup(name);
     element[numelements].valence = valence;
-	/* lowervalence is only used for SMILES output of
+        /* lowervalence is only used for SMILES output of
            atoms in the organic subset and since those are
            in the table already we don't need a value to
            be set here. */
@@ -334,6 +334,11 @@ maxcoord==0 or maxcoord > valence then maxcoord is the same as valence. */
     element[numelements].maxcoord = maxcoord;
     element[numelements].organic = FALSE;
     element[numelements].index = ++maxindex;
+
+    if (verbose)
+	fprintf(stderr,"Added element %s input %s, valence=%d maxcoord=%d\n",
+		element[numelements].name,element[numelements].inputname,
+                element[numelements].valence,element[numelements].maxcoord);
     ++numelements;
 }
 
@@ -379,15 +384,15 @@ program with WORDSIZE=64 if you really need to). */
 
     for (i = 0; i < ne; ++i)
     {
-	x = edge[i].x;
-	y = edge[i].y;
-	g[x] |= bit[y]; g[y] |= bit[x];
-	if (mult[i] > 0) { g[n+x] |= bit[n+y]; g[n+y] |= bit[n+x]; }
-	if (mult[i] > 1) 
-	{
-	    g[x] |= bit[y+n]; g[y+n] |= bit[x];
-	    g[x+n] |= bit[y]; g[y] |= bit[x+n];
-	}
+        x = edge[i].x;
+        y = edge[i].y;
+        g[x] |= bit[y]; g[y] |= bit[x];
+        if (mult[i] > 0) { g[n+x] |= bit[n+y]; g[n+y] |= bit[n+x]; }
+        if (mult[i] > 1) 
+        {
+            g[x] |= bit[y+n]; g[y+n] |= bit[x];
+            g[x+n] |= bit[y]; g[y] |= bit[x+n];
+        }
     }
 
     options.defaultptn = FALSE;
@@ -399,8 +404,8 @@ program with WORDSIZE=64 if you really need to). */
     ans2 = ne;
     for (i = 0; i < nv; ++i)
     {
-	ans1 = 177*ans1 + (h[i] >> (WORDSIZE-nv));
-	ans2 = 1237*ans2 + (h[i] >> (WORDSIZE-nv));
+        ans1 = 177*ans1 + (h[i] >> (WORDSIZE-nv));
+        ans2 = 1237*ans2 + (h[i] >> (WORDSIZE-nv));
     }
 
     return ans1^ans2;
@@ -435,47 +440,47 @@ isplanar(graph *g, int n)
     ne = 0;
     for (i = 0; i < n; ++i)
     {
-	h[i] = g[i];
-	pop = POPCOUNT(h[i]);
-	ne += pop;
-	if (pop <= 2) queue |= bit[i];
+        h[i] = g[i];
+        pop = POPCOUNT(h[i]);
+        ne += pop;
+        if (pop <= 2) queue |= bit[i];
     }
     ne /= 2;
     nv = n;
 
     while (queue && ne >= nv+3)
     {
-	TAKEBIT(i,queue);
-	pop = POPCOUNT(h[i]);
-	if (pop == 1)  /* i--j with deg(i)=1 */
-	{
-	    j = FIRSTBITNZ(h[i]);
-	    h[i] = 0;
-	    h[j] &= ~bit[i];
-	    --nv;
-	    --ne;
-	    queue |= bit[j];
-	}
-	else if (pop == 2)  /* j--i--k with deg(i)=2 */
-	{
-	    j = FIRSTBITNZ(h[i]);
-	    k = FIRSTBITNZ(h[i] & ~bit[j]);
-	    h[i] = 0;
-	    h[j] &= ~bit[i];
-	    h[k] &= ~bit[i];
-	    --nv;
-	    if ((h[j] & bit[k]))
-	    {
-		ne -= 2;
-		queue |= (bit[j] | bit[k]);
-	    }
-	    else
-	    {
-		--ne;
-		h[j] |= bit[k];
-		h[k] |= bit[j];
-	    }
-	}
+        TAKEBIT(i,queue);
+        pop = POPCOUNT(h[i]);
+        if (pop == 1)  /* i--j with deg(i)=1 */
+        {
+            j = FIRSTBITNZ(h[i]);
+            h[i] = 0;
+            h[j] &= ~bit[i];
+            --nv;
+            --ne;
+            queue |= bit[j];
+        }
+        else if (pop == 2)  /* j--i--k with deg(i)=2 */
+        {
+            j = FIRSTBITNZ(h[i]);
+            k = FIRSTBITNZ(h[i] & ~bit[j]);
+            h[i] = 0;
+            h[j] &= ~bit[i];
+            h[k] &= ~bit[i];
+            --nv;
+            if ((h[j] & bit[k]))
+            {
+                ne -= 2;
+                queue |= (bit[j] | bit[k]);
+            }
+            else
+            {
+                --ne;
+                h[j] |= bit[k];
+                h[k] |= bit[j];
+            }
+        }
     }
 
     if (ne <= nv + 2) return TRUE;
@@ -488,16 +493,16 @@ isplanar(graph *g, int n)
     for (i = 0; i < n; ++i)
     if (h[i] != 0)
     {
-	V[newlab[i]].first_edge = k;
-	ww = h[i];
-	while (ww)
-	{
-	    TAKEBIT(j,ww);
-	    A[k].end_vertex = newlab[j];
-	    A[k].next = k+1;
-	    ++k;
-	}
-	A[k-1].next = NIL;
+        V[newlab[i]].first_edge = k;
+        ww = h[i];
+        while (ww)
+        {
+            TAKEBIT(j,ww);
+            A[k].end_vertex = newlab[j];
+            A[k].next = k+1;
+            ++k;
+        }
+        A[k-1].next = NIL;
     }
 
     ne = k/2;
@@ -527,60 +532,49 @@ SMILESoutput(int *vcol, int n, int *hyd, int *mult, int ne)
 
     for (i = 0; i < smileslen; ++i)
     {
-	x = smilesskeleton[i].x;
-	y = smilesskeleton[i].y;
-	switch(smilesskeleton[i].item)
-	{
-	 case SM_ATOM :
-	    thiselement = &element[vcol[x]];
+        x = smilesskeleton[i].x;
+        y = smilesskeleton[i].y;
+        switch(smilesskeleton[i].item)
+        {
+         case SM_ATOM :
+            thiselement = &element[vcol[x]];
 #if 0
  /* This version seems to meet the OpenSmiles standard, but some
     problems with obabel have not been tracked down. */
-	    if (!thiselement->organic ||
+            if (!thiselement->organic ||
                     thiselement->valence - hyd[x] <= thiselement->lowervalence)
 #else
  /* This version gives explicit H for atoms in higher valences even
     if they are in the organic subset. */
-	    if (!thiselement->organic ||
-		 (thiselement->lowervalence > 0 && hyd[x] > 0))
+            if (!thiselement->organic ||
+                 (thiselement->lowervalence > 0 && hyd[x] > 0))
 #endif
-	    {
-		*(p++) = '[';
-		PUTSTR(thiselement->name);
-		if (hyd[x] > 0) *(p++) = 'H';
-		if (hyd[x] > 1) PUTINT(hyd[x])
-		*(p++) = ']';
-	    }
-	    else 
-		PUTSTR(thiselement->name);
-	    break;
-	 case SM_BOND :
-	    m = mult[edgenumber[x][y]];
-	    if      (m == 1) *(p++) = '=';
-	    else if (m == 2) *(p++) = '#';
-	    break;
-	 case SM_OPEN :
-	    *(p++) = '(';
-	    break;
-	 case SM_CLOSE :
-	    *(p++) = ')';
-	    break;
-	 case SM_RING0 :
-	    m = mult[edgenumber[x][y]];
+            {
+                *(p++) = '[';
+                PUTSTR(thiselement->name);
+                if (hyd[x] > 0) *(p++) = 'H';
+                if (hyd[x] > 1) PUTINT(hyd[x])
+                *(p++) = ']';
+            }
+            else 
+                PUTSTR(thiselement->name);
+            break;
+         case SM_BOND :
+            m = mult[edgenumber[x][y]];
             if      (m == 1) *(p++) = '=';
             else if (m == 2) *(p++) = '#';
-	    r = smilesskeleton[i].r;
-	    if (r < 10)
-		*(p++) = '0' + r;
-	    else
-	    {
-		*(p++) = '%';
-		*(p++) = '0' + r/10;
-		*(p++) = '0' + r%10;
-	    }
-	    break;
-	 case SM_RING1 :
-	    r = smilesskeleton[i].r;
+            break;
+         case SM_OPEN :
+            *(p++) = '(';
+            break;
+         case SM_CLOSE :
+            *(p++) = ')';
+            break;
+         case SM_RING0 :
+            m = mult[edgenumber[x][y]];
+            if      (m == 1) *(p++) = '=';
+            else if (m == 2) *(p++) = '#';
+            r = smilesskeleton[i].r;
             if (r < 10)
                 *(p++) = '0' + r;
             else
@@ -589,8 +583,19 @@ SMILESoutput(int *vcol, int n, int *hyd, int *mult, int ne)
                 *(p++) = '0' + r/10;
                 *(p++) = '0' + r%10;
             }
-	    break;
-	}
+            break;
+         case SM_RING1 :
+            r = smilesskeleton[i].r;
+            if (r < 10)
+                *(p++) = '0' + r;
+            else
+            {
+                *(p++) = '%';
+                *(p++) = '0' + r/10;
+                *(p++) = '0' + r%10;
+            }
+            break;
+        }
     }
 
     *(p++) = '\n';
@@ -623,12 +628,12 @@ SDFformat(int *vcol, int n, int *hyd, int *mult, int ne)
         gzprintf(gzoutfile,"%3d%3d  0  0  0  0            999 V2000\n",n,ne);
 
         for (i = 0; i < n; ++i)
-	    gzprintf(gzoutfile,"    0.0000    0.0000    0.0000 %-2s"
+            gzprintf(gzoutfile,"    0.0000    0.0000    0.0000 %-2s"
                    "  0  0  0  0  0%3d  0  0  0  0  0  0\n",
                    element[vcol[i]].name,element[vcol[i]].valence);
     
         for (i = 0; i < ne; ++i)
-	    gzprintf(gzoutfile,"%3d%3d%3d  0  0  0  0\n",
+            gzprintf(gzoutfile,"%3d%3d%3d  0  0  0  0\n",
                 edge[i].x+1,edge[i].y+1,mult[i]+1);
 
         gzprintf(gzoutfile,"M  END\n$$$$\n");
@@ -641,12 +646,12 @@ SDFformat(int *vcol, int n, int *hyd, int *mult, int ne)
     fprintf(outfile,"%3d%3d  0  0  0  0            999 V2000\n",n,ne);
 
     for (i = 0; i < n; ++i)
-	fprintf(outfile,"    0.0000    0.0000    0.0000 %-2s"
+        fprintf(outfile,"    0.0000    0.0000    0.0000 %-2s"
                "  0  0  0  0  0%3d  0  0  0  0  0  0\n",
                element[vcol[i]].name,element[vcol[i]].valence);
 
     for (i = 0; i < ne; ++i)
-	fprintf(outfile,"%3d%3d%3d  0  0  0  0\n",
+        fprintf(outfile,"%3d%3d%3d  0  0  0  0\n",
             edge[i].x+1,edge[i].y+1,mult[i]+1);
 
     fprintf(outfile,"M  END\n$$$$\n");
@@ -672,8 +677,8 @@ multigoutput(int *vcol, int n, int *mult, int ne)
     for (i = 0; i < ne; ++i)
     {
         SPC; PUTINT(edge[i].x);
-	SPC; PUTINT(edge[i].y);
-	SPC; PUTINT(mult[i]);
+        SPC; PUTINT(edge[i].y);
+        SPC; PUTINT(mult[i]);
     }
     *(p++) = '\n';
     *p = '\0';
@@ -681,8 +686,8 @@ multigoutput(int *vcol, int n, int *mult, int ne)
 #ifdef ZLIB
     if (gzip)
     {
-	if (gzputs(gzoutfile,line) < 0)
-	    gt_abort(">E surge : zlib output error\n");
+        if (gzputs(gzoutfile,line) < 0)
+            gt_abort(">E surge : zlib output error\n");
         return;
     }
 #endif
@@ -708,17 +713,17 @@ alphabeticoutput(int *vcol, int n, int *mult, int ne)
 
     for (i = 0; i < ne; ++i)
     {
-	SPC;
-	xx = newlabel[edge[i].x];
-	yy = newlabel[edge[i].y];
-	if (xx < yy)
-	{
+        SPC;
+        xx = newlabel[edge[i].x];
+        yy = newlabel[edge[i].y];
+        if (xx < yy)
+        {
             PUTINT(xx); PUTBND(mult[i]); PUTINT(yy);
-	}
-	else
-	{
+        }
+        else
+        {
             PUTINT(yy); PUTBND(mult[i]); PUTINT(xx);
-	}
+        }
     }
     *(p++) = '\n';
     *p = '\0';
@@ -726,8 +731,8 @@ alphabeticoutput(int *vcol, int n, int *mult, int ne)
 #ifdef ZLIB
     if (gzip)
     {
-	if (gzputs(gzoutfile,line) < 0)
-	    gt_abort(">E surge : zlib output error\n");
+        if (gzputs(gzoutfile,line) < 0)
+            gt_abort(">E surge : zlib output error\n");
         return;
     }
 #endif
@@ -751,8 +756,8 @@ gotone(int *vcol, int n, int *hyd, int *mult, int ne, int level)
     if (needcoordtest)
         for (i = 0; i < n; ++i)
         {
-	    if (deg[i] + hyd[i] > element[vcol[i]].maxcoord) return;
-	    if (deg[i] + hyd[i] > 4 && hyd[i] > 0) return;
+            if (deg[i] + hyd[i] > element[vcol[i]].maxcoord) return;
+            if (deg[i] + hyd[i] > 4 && hyd[i] > 0) return;
         }
 
 #ifdef SURGEPLUGIN_STEP3
@@ -763,13 +768,13 @@ gotone(int *vcol, int n, int *hyd, int *mult, int ne, int level)
     if (uswitch) return;
 
     if (outlevel == 3)
-	multigoutput(vcol,n,mult,ne);
+        multigoutput(vcol,n,mult,ne);
     else if (alphabetic)
-	alphabeticoutput(vcol,n,mult,ne);
+        alphabeticoutput(vcol,n,mult,ne);
     else if (smiles)
-	SMILESoutput(vcol,n,hyd,mult,ne);
+        SMILESoutput(vcol,n,hyd,mult,ne);
     else
-	SDFformat(vcol,n,hyd,mult,ne);
+        SDFformat(vcol,n,hyd,mult,ne);
 }
 
 /******************************************************************/
@@ -788,7 +793,7 @@ testemax(int *mult, int ne, int level)
     {
         for (i = 0; i < ne; ++i)
         {
-	    j = gp[i];
+            j = gp[i];
             if      (mult[j] > mult[i]) return FALSE;
             else if (mult[j] < mult[i]) break;
         }
@@ -808,41 +813,41 @@ escan2(int level, int needed, int *vcol, int *hyd, int *prev, int n, int *mult, 
 
     if (needed == 0)
     {
-	if (egroupsize > 1 && !testemax(mult,ne,level))
-	    return;
-	gotone(vcol,n,hyd,mult,ne,level);
-	return;
+        if (egroupsize > 1 && !testemax(mult,ne,level))
+            return;
+        gotone(vcol,n,hyd,mult,ne,level);
+        return;
     }
     else
     {
-	maxlev = ne + 1 - (needed+maxbond-1)/maxbond;
-	for (lev = level; lev < maxlev; ++lev)  
-	{
+        maxlev = ne + 1 - (needed+maxbond-1)/maxbond;
+        for (lev = level; lev < maxlev; ++lev)  
+        {
             x = edge[lev].x;
             y = edge[lev].y;
-	    max = edge[lev].maxmult;
+            max = edge[lev].maxmult;
 
             if (needed < max) max = needed;
             if (hyd[x] < max) max = hyd[x];
             if (hyd[y] < max) max = hyd[y];
             if (prev[lev] >= 0 && mult[prev[lev]] < max) max = mult[prev[lev]];
-	    if (edge[lev].allenemate1 >= 0 && mult[edge[lev].allenemate1] >= 1)
+            if (edge[lev].allenemate1 >= 0 && mult[edge[lev].allenemate1] >= 1)
                  max = 0;
-	    if (edge[lev].allenemate2 >= 0 && mult[edge[lev].allenemate2] >= 1)
+            if (edge[lev].allenemate2 >= 0 && mult[edge[lev].allenemate2] >= 1)
                  max = 0;
 
             for (k = 1; k <= max; ++k)
             {
-	        mult[lev] = k;
-	        hyd[x] -= k;
+                mult[lev] = k;
+                hyd[x] -= k;
                 hyd[y] -= k;
-	        escan2(lev+1,needed-k,vcol,hyd,prev,n,mult,ne);
-	        hyd[x] += k;
+                escan2(lev+1,needed-k,vcol,hyd,prev,n,mult,ne);
+                hyd[x] += k;
                 hyd[y] += k;
-    	    }
+            }
 
-	    mult[lev] = 0;
-	}
+            mult[lev] = 0;
+        }
     }
 
     return;
@@ -859,38 +864,38 @@ escan(int level, int needed, int *vcol, int *hyd,
 
     if (needed == 0)
     {
-	if (egroupsize > 1 && !testemax(mult,ne,level))
-	    return;
-	gotone(vcol,n,hyd,mult,ne,level);
-	return;
+        if (egroupsize > 1 && !testemax(mult,ne,level))
+            return;
+        gotone(vcol,n,hyd,mult,ne,level);
+        return;
     }
     else
     {
-	maxlev = ne + 1 - (needed+maxbond-1)/maxbond;
-	for (lev = level; lev < maxlev; ++lev)  
-	{
+        maxlev = ne + 1 - (needed+maxbond-1)/maxbond;
+        for (lev = level; lev < maxlev; ++lev)  
+        {
             x = edge[lev].x;
             y = edge[lev].y;
-	    max = edge[lev].maxmult;
+            max = edge[lev].maxmult;
 
             if (needed < max) max = needed;
             if (hyd[x] < max) max = hyd[x];
             if (hyd[y] < max) max = hyd[y];
             if (prev[lev] >= 0 && mult[prev[lev]] < max)
-	        max = mult[prev[lev]];
+                max = mult[prev[lev]];
 
             for (k = 1; k <= max; ++k)
             {
-	        mult[lev] = k;
-	        hyd[x] -= k;
+                mult[lev] = k;
+                hyd[x] -= k;
                 hyd[y] -= k;
-	        escan(lev+1,needed-k,vcol,hyd,prev,n,mult,ne);
-	        hyd[x] += k;
+                escan(lev+1,needed-k,vcol,hyd,prev,n,mult,ne);
+                hyd[x] += k;
                 hyd[y] += k;
-    	    }
+            }
 
-	    mult[lev] = 0;
-	}
+            mult[lev] = 0;
+        }
     }
 
     return;
@@ -911,9 +916,9 @@ findegroup(int *vcol, int n, int ne)
     {
         for (i = 0; i < n; ++i)
             if (vcol[vgp[i]] != vcol[i]) break;
-	if (i == n)
-	    for (j = 0; j < ne; ++j)
-		*(egp++) = edgenumber[vgp[edge[j].x]][vgp[edge[j].y]];
+        if (i == n)
+            for (j = 0; j < ne; ++j)
+                *(egp++) = edgenumber[vgp[edge[j].x]][vgp[edge[j].y]];
     }
 
     egroupsize = 1 + (egp - egroup) / ne;
@@ -942,11 +947,11 @@ colouredges(graph *g, int *vcolindex, int n)
     needcoordtest = FALSE;
     for (i = 0; i < n; ++i)
     {
-	vcol[i] = elementtype[vcolindex[i]];
-	hyd[i] = element[vcol[i]].valence - deg[i];
-	if (element[vcol[i]].valence > element[vcol[i]].maxcoord 
+        vcol[i] = elementtype[vcolindex[i]];
+        hyd[i] = element[vcol[i]].valence - deg[i];
+        if (element[vcol[i]].valence > element[vcol[i]].maxcoord 
                     || (element[vcol[i]].valence > 4 && hyd[i] > 0))
-	    needcoordtest = TRUE;
+            needcoordtest = TRUE;
     }
 
 #ifdef SURGEPLUGIN_STEP2
@@ -959,33 +964,33 @@ colouredges(graph *g, int *vcolindex, int n)
 
     if (alphabetic)
     {
-	iter[0] = 0;
-	for (i = 1; i < numtypes; ++i) iter[i] = iter[i-1] + elementcount[i-1];
+        iter[0] = 0;
+        for (i = 1; i < numtypes; ++i) iter[i] = iter[i-1] + elementcount[i-1];
 
-	for (i = 0; i < n; ++i) newlabel[i] = iter[vcolindex[i]]++;
+        for (i = 0; i < n; ++i) newlabel[i] = iter[vcolindex[i]]++;
     }
 
     if (needed == 0)
     {
-	gotone(vcol,n,hyd,mult,ne,0);
-	return;
+        gotone(vcol,n,hyd,mult,ne,0);
+        return;
     }
 
     for (i = 0; i < ne; ++i) prev[i] = -1;
 
     for (i = 0; i < n; ++i)
     {
-	if (deg[i] != 1) continue;
+        if (deg[i] != 1) continue;
         /* Find most recent equivalent j */
         for (j = i; --j >= 0; )
             if (g[i] == g[j] && vcol[j] == vcol[i])
-		break;
+                break;
 
-	if (j >= 0)
-	{
-	    k = FIRSTBITNZ(g[i]);
-	    prev[edgenumber[i][k]] = edgenumber[j][k];
-	}
+        if (j >= 0)
+        {
+            k = FIRSTBITNZ(g[i]);
+            prev[edgenumber[i][k]] = edgenumber[j][k];
+        }
     }
 
     if (vgroupsize == 1) 
@@ -999,26 +1004,26 @@ colouredges(graph *g, int *vcolindex, int n)
                 gt_abort(">E surge : Can't allocate space for egroup\n");
             egroupalloc = (vgroupsize+48) * ne;
         }
-	findegroup(vcol,n,ne);
-	if (vgroupsize % egroupsize != 0) gt_abort(">E egroup error\n");
+        findegroup(vcol,n,ne);
+        if (vgroupsize % egroupsize != 0) gt_abort(">E egroup error\n");
     }
 
     if (egroupsize == 1 && needed == 1)
     {
-	for (i = 0; i < ne; ++i) mult[i] = 0;
-	for (i = 0; i < ne; ++i)
-	    if (prev[i] < 0 && edge[i].maxmult >= 1
-		&& hyd[edge[i].x] > 0 && hyd[edge[i].y] > 0)
-	    {
-		mult[i] = 1;
-		--hyd[edge[i].x];
-		--hyd[edge[i].y];
-		gotone(vcol,n,hyd,mult,ne,ne);
-		++hyd[edge[i].x];
-		++hyd[edge[i].y];
-		mult[i] = 0;
-	    }
-	return;
+        for (i = 0; i < ne; ++i) mult[i] = 0;
+        for (i = 0; i < ne; ++i)
+            if (prev[i] < 0 && edge[i].maxmult >= 1
+                && hyd[edge[i].x] > 0 && hyd[edge[i].y] > 0)
+            {
+                mult[i] = 1;
+                --hyd[edge[i].x];
+                --hyd[edge[i].y];
+                gotone(vcol,n,hyd,mult,ne,ne);
+                ++hyd[edge[i].x];
+                ++hyd[edge[i].y];
+                mult[i] = 0;
+            }
+        return;
     }
 
     if (egroupsize != 1) ++multignontriv;
@@ -1052,12 +1057,12 @@ vcolgoutput(graph *g, int *vcolindex, int n)
     SPC;
     for (i = 0; i < n; ++i)
     {
-	w = g[i] & BITMASK(i);
-	while (w)
-	{
-	    TAKEBIT(j,w);
+        w = g[i] & BITMASK(i);
+        while (w)
+        {
+            TAKEBIT(j,w);
             SPC; PUTINT(i); SPC; PUTINT(j);
-	}
+        }
     }
     *(p++) = '\n';
     *p = '\0';
@@ -1065,9 +1070,9 @@ vcolgoutput(graph *g, int *vcolindex, int n)
 #ifdef ZLIB
     if (gzip)
     {
-	if (gzputs(gzoutfile,line) < 0)
-	     gt_abort(">E surge : zlib output error\n");
-	return;
+        if (gzputs(gzoutfile,line) < 0)
+             gt_abort(">E surge : zlib output error\n");
+        return;
     }
 #endif
 
@@ -1087,12 +1092,12 @@ testvmax(int *colindex, int n)
      /* kgp really starts at 1 on the next line */
     for (kgp = 1, gp = vgroup; kgp < vgroupsize; ++kgp, gp += n)
     {
-	for (i = 0; i < n; ++i)
-	{
-	    j = gp[i];
-	    if      (colindex[j] > colindex[i]) return FALSE;
-	    else if (colindex[j] < colindex[i]) break;
-	}
+        for (i = 0; i < n; ++i)
+        {
+            j = gp[i];
+            if      (colindex[j] > colindex[i]) return FALSE;
+            else if (colindex[j] < colindex[i]) break;
+        }
     }
 
     return TRUE;
@@ -1109,30 +1114,30 @@ vscan(int level, int *colindex, graph *g, int *prev,
 
     if (level == n)
     {
-	if (vgroupsize == 1 || testvmax(colindex,n))
-	{
-	    ++vcolgout;
-	    if (outlevel == 2)
-	    {
-		if (!uswitch) vcolgoutput(g,colindex,n);
-	    }
-	    else
-	        colouredges(g,colindex,n);
-	}
-	return;
+        if (vgroupsize == 1 || testvmax(colindex,n))
+        {
+            ++vcolgout;
+            if (outlevel == 2)
+            {
+                if (!uswitch) vcolgoutput(g,colindex,n);
+            }
+            else
+                colouredges(g,colindex,n);
+        }
+        return;
     }
 
     max = maxcolindex[level];
     if (prev[level] >= 0 && colindex[prev[level]] < max)
-	max = colindex[prev[level]];
+        max = colindex[prev[level]];
 
     for (k = 0; k <= max; ++k)   
     {
         if (remain[k] == 0) continue;
-	colindex[level] = k;
-	--remain[k];
-	vscan(level+1,colindex,g,prev,maxcolindex,remain,n);
-	++remain[k];
+        colindex[level] = k;
+        --remain[k];
+        vscan(level+1,colindex,g,prev,maxcolindex,remain,n);
+        ++remain[k];
     }
 }
 
@@ -1146,8 +1151,8 @@ storevgroup(int *p, int n)
 
     if (vgroupcount == 0)
     {
-	vgroupcount = 1;   /* Don't store identity */
-	return;
+        vgroupcount = 1;   /* Don't store identity */
+        return;
     }
 
     gp = vgroup + n * (vgroupcount-1);
@@ -1180,22 +1185,22 @@ colourvertices(graph *g, int n)
 
     for (i = 0; i < n; ++i)
     {
-	prev[i] = -1;
-	weight[i] = n*POPCOUNT(g[i]);
+        prev[i] = -1;
+        weight[i] = n*POPCOUNT(g[i]);
     }
 
     for (i = 0; i < n; ++i)
     {
-	if (POPCOUNT(g[i]) != 1) continue;
-	/* Find most recent equivalent j */
-	for (j = i; --j >= 0; )
-	    if (g[j] == g[i]) break;
+        if (POPCOUNT(g[i]) != 1) continue;
+        /* Find most recent equivalent j */
+        for (j = i; --j >= 0; )
+            if (g[j] == g[i]) break;
 
-	if (j >= 0)
-	{
-	    prev[i] = j;
-	    weight[i] = weight[j] + 1;
-	}
+        if (j >= 0)
+        {
+            prev[i] = j;
+            weight[i] = weight[j] + 1;
+        }
     }
 
     options.userautomproc = groupautomproc;
@@ -1216,7 +1221,7 @@ colourvertices(graph *g, int n)
     if (vgroupsize == 1)  /* Trivial group */
     {
         vscan(0,vcolindex,g,prev,maxcolindex,remain,n);
-	return;
+        return;
     }
 
     ++vcolgnontriv;
@@ -1227,10 +1232,10 @@ colourvertices(graph *g, int n)
 
     if (vgroupalloc < (vgroupsize-1) * n)
     {
-	if (vgroup) free(vgroup);
-	if ((vgroup = malloc((vgroupsize+48)*n*sizeof(int))) == NULL)
-	    gt_abort(">E surge : Can't allocate space for vgroup\n");
-	vgroupalloc = (vgroupsize+48) * n;
+        if (vgroup) free(vgroup);
+        if ((vgroup = malloc((vgroupsize+48)*n*sizeof(int))) == NULL)
+            gt_abort(">E surge : Can't allocate space for vgroup\n");
+        vgroupalloc = (vgroupsize+48) * n;
     }
 
     vgroupcount = 0;
@@ -1241,10 +1246,10 @@ colourvertices(graph *g, int n)
    /* Check the logic of the next section. What about maxdeg? */
     if (numtypes == 1)
     {
-	for (i = 0; i < n; ++i) vcolindex[i] = 0;
-	++vcolgout;
-	colouredges(g,vcolindex,n);
-	return;
+        for (i = 0; i < n; ++i) vcolindex[i] = 0;
+        ++vcolgout;
+        colouredges(g,vcolindex,n);
+        return;
     }
 
     j = n;      /* Can choose a better orbit? */
@@ -1273,43 +1278,43 @@ surgepreprune(graph *g, int n, int maxn)
 
     if (bad9)    /* cycle34verts */
     {
-	if (n <= 2)
-	    cycle34verts[n] = 0;
-	else
-	{
-	    c34 = cycle34verts[n-1];
-	    if (!tswitch)
-	    {
-		w = g[n-1];
-		while (w)
-		{
-		    TAKEBIT(i,w);
-		    ww = g[i] & w;
-		    if (POPCOUNT(ww) > 1) return 1;
-		    if ((ww))
-		    {
-		        cyc = bit[n-1] | bit[i] | ww;
-			if ((c34 & cyc)) return 1;
-			c34 |= cyc;
-		    }
-		}
-	    }
-	    if (!fswitch)
-	    {
-		for (i = n-1; --i >= 0;)
-		{
-		    w = g[i] & g[n-1];
-		    if (POPCOUNT(w) > 2) return 1;
-		    if (POPCOUNT(w) == 2)
-		    {
-			cyc = bit[n-1] | bit[i] | w;
-			if ((c34 & cyc)) return 1;
-			c34 |= cyc;
-		    }
-		}
-	    }
-	    cycle34verts[n] = c34;
-	}
+        if (n <= 2)
+            cycle34verts[n] = 0;
+        else
+        {
+            c34 = cycle34verts[n-1];
+            if (!tswitch)
+            {
+                w = g[n-1];
+                while (w)
+                {
+                    TAKEBIT(i,w);
+                    ww = g[i] & w;
+                    if (POPCOUNT(ww) > 1) return 1;
+                    if ((ww))
+                    {
+                        cyc = bit[n-1] | bit[i] | ww;
+                        if ((c34 & cyc)) return 1;
+                        c34 |= cyc;
+                    }
+                }
+            }
+            if (!fswitch)
+            {
+                for (i = n-1; --i >= 0;)
+                {
+                    w = g[i] & g[n-1];
+                    if (POPCOUNT(w) > 2) return 1;
+                    if (POPCOUNT(w) == 2)
+                    {
+                        cyc = bit[n-1] | bit[i] | w;
+                        if ((c34 & cyc)) return 1;
+                        c34 |= cyc;
+                    }
+                }
+            }
+            cycle34verts[n] = c34;
+        }
     }
 
 #ifdef OLDGENG
@@ -1355,62 +1360,62 @@ incrementally updating the required counts. */
 
     if (tswitch)
     {
-	if (n <= 2)
-	    count3ring[n] = 0;
-	else
-	{
-	    extra = 0;
-	    w = g[n-1];
-	    while (w)
-	    {
-		TAKEBIT(i,w);
-		extra += POPCOUNT(g[i]&w);
-	    }
-	    count3ring[n] = count3ring[n-1] + extra;
-	    if (count3ring[n] > max3rings) return 1;
-	}
-	if (n == nmax && count3ring[n] < min3rings)
-	    return 1;
+        if (n <= 2)
+            count3ring[n] = 0;
+        else
+        {
+            extra = 0;
+            w = g[n-1];
+            while (w)
+            {
+                TAKEBIT(i,w);
+                extra += POPCOUNT(g[i]&w);
+            }
+            count3ring[n] = count3ring[n-1] + extra;
+            if (count3ring[n] > max3rings) return 1;
+        }
+        if (n == nmax && count3ring[n] < min3rings)
+            return 1;
     }
 
     if (fswitch)
     {
-	if (n <= 3)
-	    count4ring[n] = 0;
-	else
-	{
-	    extra = 0;
-	    for (i = 0; i < n-1; ++i)
-	    {
-		k = POPCOUNT(g[i]&g[n-1]);
-		extra += k*k - k;
-	    }
-	    count4ring[n] = count4ring[n-1] + extra/2;
+        if (n <= 3)
+            count4ring[n] = 0;
+        else
+        {
+            extra = 0;
+            for (i = 0; i < n-1; ++i)
+            {
+                k = POPCOUNT(g[i]&g[n-1]);
+                extra += k*k - k;
+            }
+            count4ring[n] = count4ring[n-1] + extra/2;
             if (count4ring[n] > max4rings) return 1;
-	}
-	if (n == nmax && count4ring[n] < min4rings)
+        }
+        if (n == nmax && count4ring[n] < min4rings)
             return 1;
     }
 
     if (pswitch)
     {
-	if (n <= 4)
-	    count5ring[n] = 0;
-	else
-	{
-	    extra = 0;
-	    for (y = 1; y < n-1; ++y)
-	    {
-		w = g[y] & ~BITMASK(y);
-		while (w)
-		{
-		    TAKEBIT(x,w);
-		    ax = (g[x] & g[n-1]) & ~bit[y];
-		    ay = (g[y] & g[n-1]) & ~bit[x];
-		    extra += POPCOUNT(ax)*POPCOUNT(ay) - POPCOUNT(ax&ay);
-		}
-	    }
-	    count5ring[n] = count5ring[n-1] + extra;
+        if (n <= 4)
+            count5ring[n] = 0;
+        else
+        {
+            extra = 0;
+            for (y = 1; y < n-1; ++y)
+            {
+                w = g[y] & ~BITMASK(y);
+                while (w)
+                {
+                    TAKEBIT(x,w);
+                    ax = (g[x] & g[n-1]) & ~bit[y];
+                    ay = (g[y] & g[n-1]) & ~bit[x];
+                    extra += POPCOUNT(ax)*POPCOUNT(ay) - POPCOUNT(ax&ay);
+                }
+            }
+            count5ring[n] = count5ring[n-1] + extra;
             if (count5ring[n] > max5rings) return 1;
         }
         if (n == nmax && count5ring[n] < min5rings)
@@ -1421,91 +1426,91 @@ incrementally updating the required counts. */
     {
           /* For K_33 we can assume that vertex n-1 is included */
         for (x = n-1; --x >= 1;)
-	if (POPCOUNT(g[x]&g[n-1]) >= 3)
-	{
-	     for (y = x; --y >= 0;)
-		if (POPCOUNT(g[y]&g[x]&g[n-1]) >= 3) return 1;
+        if (POPCOUNT(g[x]&g[n-1]) >= 3)
+        {
+             for (y = x; --y >= 0;)
+                if (POPCOUNT(g[y]&g[x]&g[n-1]) >= 3) return 1;
         }
-	
-	  /* But for K_24 we can't */
-	for (x = n; --x >= 1;)
-	if (POPCOUNT(g[x]) >= 4)
-	{
-	    for (y = x; --y >= 0;)
-		if (POPCOUNT(g[x]&g[y]) >= 4) return 1;
-	}
+        
+          /* But for K_24 we can't */
+        for (x = n; --x >= 1;)
+        if (POPCOUNT(g[x]) >= 4)
+        {
+            for (y = x; --y >= 0;)
+                if (POPCOUNT(g[x]&g[y]) >= 4) return 1;
+        }
     }
 
     if (bad8)
     {
        /* cone of P4 */
-	if (n >= 5)
-	{
-	    for (x = n; --x >= 0;)
-	    if (POPCOUNT(g[x]) == 4)
-	    {
+        if (n >= 5)
+        {
+            for (x = n; --x >= 0;)
+            if (POPCOUNT(g[x]) == 4)
+            {
               /* Think of a better way to do this */
-		w = gx = g[x];
-		TAKEBIT(i1,w);
-		TAKEBIT(i2,w);
-		TAKEBIT(i3,w);
-		i4 = FIRSTBITNZ(w);
-		d1 = POPCOUNT(g[i1]&gx);
-		d2 = POPCOUNT(g[i2]&gx);
-		d3 = POPCOUNT(g[i3]&gx);
-		d4 = POPCOUNT(g[i4]&gx);
-		if (d1 > 0 && d2 > 0 && d3 > 0 && d4 > 0
-		   && ((d1 >= 2)+(d2 >= 2)+(d3 >= 2)+(d4 >= 2)) >= 2)
-		      return 1;
-	    }
-	    else if (POPCOUNT(g[x]) > 4)
-	    {
-		w = gx = g[x];
-		i = 0;
-		while (w)
-		{
-		    TAKEBIT(y,w);
-		    if (POPCOUNT(g[y]&gx) >= 2) v[i++] = y;
-		}
-		for (--i; i >= 1; --i)
-		for (j = 0; j < i; ++j)
-		    if ((g[v[i]] & bit[v[j]]) &&
-	  		      POPCOUNT((g[v[i]]|g[v[j]])&gx) >= 4)
-			return 1;
-	    }
-	}
+                w = gx = g[x];
+                TAKEBIT(i1,w);
+                TAKEBIT(i2,w);
+                TAKEBIT(i3,w);
+                i4 = FIRSTBITNZ(w);
+                d1 = POPCOUNT(g[i1]&gx);
+                d2 = POPCOUNT(g[i2]&gx);
+                d3 = POPCOUNT(g[i3]&gx);
+                d4 = POPCOUNT(g[i4]&gx);
+                if (d1 > 0 && d2 > 0 && d3 > 0 && d4 > 0
+                   && ((d1 >= 2)+(d2 >= 2)+(d3 >= 2)+(d4 >= 2)) >= 2)
+                      return 1;
+            }
+            else if (POPCOUNT(g[x]) > 4)
+            {
+                w = gx = g[x];
+                i = 0;
+                while (w)
+                {
+                    TAKEBIT(y,w);
+                    if (POPCOUNT(g[y]&gx) >= 2) v[i++] = y;
+                }
+                for (--i; i >= 1; --i)
+                for (j = 0; j < i; ++j)
+                    if ((g[v[i]] & bit[v[j]]) &&
+                              POPCOUNT((g[v[i]]|g[v[j]])&gx) >= 4)
+                        return 1;
+            }
+        }
 
-	/* K4 with a path of 3 edges between two of its vertices */
+        /* K4 with a path of 3 edges between two of its vertices */
 
-	if (n >= 6)
-	{
-	    for (x = n; --x >= 1;)
-	    if (POPCOUNT(g[x]) >= 4)	
-	    {
-		for (y = x; --y >= 0;)
-		if (POPCOUNT(g[y]) >= 4 && (g[y]&bit[x]))
-		{
-		    gxy = g[x] & g[y];
-		    while (gxy)
-		    {
-			TAKEBIT(a,gxy);
-			gxya = gxy & g[a];
-			while (gxya)
-			{
-			    TAKEBIT(b,gxya);
-			    w = bit[x] | bit[y] | bit[a] | bit[b];
-			    gi = g[x] & ~w;
-			    gj = g[y] & ~w;
-			    while (gi)
-			    {
-				TAKEBIT(i,gi);
-				if ((g[i] & gj)) return 1;
-			    }
-			}
-		    }
-		}
-	    }
-	}
+        if (n >= 6)
+        {
+            for (x = n; --x >= 1;)
+            if (POPCOUNT(g[x]) >= 4)    
+            {
+                for (y = x; --y >= 0;)
+                if (POPCOUNT(g[y]) >= 4 && (g[y]&bit[x]))
+                {
+                    gxy = g[x] & g[y];
+                    while (gxy)
+                    {
+                        TAKEBIT(a,gxy);
+                        gxya = gxy & g[a];
+                        while (gxya)
+                        {
+                            TAKEBIT(b,gxya);
+                            w = bit[x] | bit[y] | bit[a] | bit[b];
+                            gi = g[x] & ~w;
+                            gj = g[y] & ~w;
+                            while (gi)
+                            {
+                                TAKEBIT(i,gi);
+                                if ((g[i] & gj)) return 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
 #ifdef SURGEPLUGIN_STEP0
@@ -1532,38 +1537,38 @@ smilesdfs(graph *g, setword *seen, int v, int par, graph *back,
 
     while (gv)
     {
-	TAKEBIT(k,gv);
-	if ((*seen & bit[k]))
-	{
-	    if (k != par)
-	    {
-		back[v] |= bit[k];
-		back[k] |= bit[v];
-	    }
-	}
-	else
-	{
-	    if (first)
-	    {
-		if (POPCOUNT(g[k]) == 1)
-		{
-		    if ((w = (gv & ~*seen)))   /* really = */
-		    {
-			gv |= bit[k];
-			k = FIRSTBITNZ(w);
-			gv &= ~bit[k];
-		    }
-		}
-		smilesdfs(g,seen,k,v,back,smilestemp,len);
-		first = FALSE;
-	    }
-	    else
-	    {
-		smilestemp[(*len)++].item = SM_CLOSE;
-		smilesdfs(g,seen,k,v,back,smilestemp,len);
-		smilestemp[(*len)++].item = SM_OPEN;
-	    }
-	}
+        TAKEBIT(k,gv);
+        if ((*seen & bit[k]))
+        {
+            if (k != par)
+            {
+                back[v] |= bit[k];
+                back[k] |= bit[v];
+            }
+        }
+        else
+        {
+            if (first)
+            {
+                if (POPCOUNT(g[k]) == 1)
+                {
+                    if ((w = (gv & ~*seen)))   /* really = */
+                    {
+                        gv |= bit[k];
+                        k = FIRSTBITNZ(w);
+                        gv &= ~bit[k];
+                    }
+                }
+                smilesdfs(g,seen,k,v,back,smilestemp,len);
+                first = FALSE;
+            }
+            else
+            {
+                smilestemp[(*len)++].item = SM_CLOSE;
+                smilesdfs(g,seen,k,v,back,smilestemp,len);
+                smilestemp[(*len)++].item = SM_OPEN;
+            }
+        }
     }
 
     smilestemp[*len].item = SM_ATOM;
@@ -1571,10 +1576,10 @@ smilesdfs(graph *g, setword *seen, int v, int par, graph *back,
     ++*len;
     if (par >= 0)
     {
-	smilestemp[*len].item = SM_BOND;
+        smilestemp[*len].item = SM_BOND;
         smilestemp[*len].x = par;
         smilestemp[*len].y = v;
-	++*len;
+        ++*len;
     }
 }
 
@@ -1602,63 +1607,63 @@ makesmilesskeleton(graph *g, int n)
     ringnumber = 0;
     for (i = len; --i >= 0; )
     {
-	smilesskeleton[smileslen++] = smilestemp[i];
+        smilesskeleton[smileslen++] = smilestemp[i];
         if (smilestemp[i].item == SM_ATOM)
-	{
-	    v = smilestemp[i].x;
-	    w = ring[v];
-	    while (w)
-	    {
-		TAKEBIT(j,w);
-		smilesskeleton[smileslen].item = SM_RING1; 
-		smilesskeleton[smileslen].r = j+1;
-		++smileslen;
-	    }
-	    w = back[v];
-	    while (w)
-	    {
-		TAKEBIT(j,w);
-		++ringnumber;
-		smilesskeleton[smileslen].item = SM_RING0; 
-		smilesskeleton[smileslen].x = v;
-		smilesskeleton[smileslen].y = j;
-		smilesskeleton[smileslen].r = ringnumber;
-		++smileslen;
-		ring[j] |= bit[ringnumber-1];
-		back[j] &= ~bit[v];
-	    }
-	}
+        {
+            v = smilestemp[i].x;
+            w = ring[v];
+            while (w)
+            {
+                TAKEBIT(j,w);
+                smilesskeleton[smileslen].item = SM_RING1; 
+                smilesskeleton[smileslen].r = j+1;
+                ++smileslen;
+            }
+            w = back[v];
+            while (w)
+            {
+                TAKEBIT(j,w);
+                ++ringnumber;
+                smilesskeleton[smileslen].item = SM_RING0; 
+                smilesskeleton[smileslen].x = v;
+                smilesskeleton[smileslen].y = j;
+                smilesskeleton[smileslen].r = ringnumber;
+                ++smileslen;
+                ring[j] |= bit[ringnumber-1];
+                back[j] &= ~bit[v];
+            }
+        }
     }
 
-#if 0
+#ifdef SMILESSKELETON
   /* This will print the SMILES skeleton to stdout */
 
-    printf("len=%d",smileslen);
+    fprintf(stdout,"len=%d",smileslen);
     for (i = 0; i < smileslen; ++i)
     {
-	switch (smilesskeleton[i].item)
-	{
-	 case SM_ATOM :
-            printf(" %d",smilesskeleton[i].x);
-	    break;
-	 case SM_BOND : 
-            printf(" %d-%d",smilesskeleton[i].x,smilesskeleton[i].y);
-	    break;
-	 case SM_OPEN :
-	    printf(" (");
-	    break;
-	 case SM_CLOSE :
-            printf(" )");
-	    break;
-	 case SM_RING0 :
-	    printf(" R%d:%d-%d",smilesskeleton[i].r,
+        switch (smilesskeleton[i].item)
+        {
+         case SM_ATOM :
+            fprintf(stdout," %d",smilesskeleton[i].x);
+            break;
+         case SM_BOND : 
+            fprintf(stdout," %d-%d",smilesskeleton[i].x,smilesskeleton[i].y);
+            break;
+         case SM_OPEN :
+            fprintf(stdout," (");
+            break;
+         case SM_CLOSE :
+            fprintf(stdout," )");
+            break;
+         case SM_RING0 :
+            fprintf(stdout," R%d:%d-%d",smilesskeleton[i].r,
                            smilesskeleton[i].x,smilesskeleton[i].y);
-	    break;
-	 case SM_RING1 :
-	    printf(" R%d",smilesskeleton[i].r);
-	}
+            break;
+         case SM_RING1 :
+            fprintf(stdout," R%d",smilesskeleton[i].r);
+        }
     }
-    printf("\n");
+    fprintf(stdout,"\n");
 #endif
 }
 
@@ -1679,8 +1684,8 @@ inducedpaths(graph *g, int origin, int start, setword body,
     w = gs & last;
     while (w)
     {
-	TAKEBIT(i,w);
-	inducedcycle[cyclecount++]
+        TAKEBIT(i,w);
+        inducedcycle[cyclecount++]
            = path | bit[edgenumber[start][i]] | bit[edgenumber[origin][i]];
     }
 
@@ -1703,7 +1708,7 @@ findinducedcycles(graph *g, int n)
 #if 0
     body = 0;
     for (i = 0; i < n; ++i)
-	if (POPCOUNT(g[i]) > 1) body |= bit[i];
+        if (POPCOUNT(g[i]) > 1) body |= bit[i];
 #else
     body = ALLMASK(n);
 #endif
@@ -1720,7 +1725,7 @@ findinducedcycles(graph *g, int n)
             TAKEBIT(j,last);
             inducedpaths(g,i,j,body&~cni,last,bit[edgenumber[i][j]]);
         }
-	if (cyclecount > 3*MAXCYCLES/4) gt_abort(">E increase MAXCYCLES\n");
+        if (cyclecount > 3*MAXCYCLES/4) gt_abort(">E increase MAXCYCLES\n");
     }
 
     if (cyclecount > maxcycles) maxcycles = cyclecount;
@@ -1729,18 +1734,18 @@ findinducedcycles(graph *g, int n)
     printf("cyclecount=%d\n",cyclecount);
 
     {
-	setword cyc; int i,j;
+        setword cyc; int i,j;
 
-	for (i = 0; i < cyclecount; ++i)
-	{
-	    cyc = inducedcycle[i];
-	    while (cyc)
-	    {
-		TAKEBIT(j,cyc);
-		printf(" %d-%d",edge[j].x,edge[j].y);
-	    }
-	    printf("\n");
-	}
+        for (i = 0; i < cyclecount; ++i)
+        {
+            cyc = inducedcycle[i];
+            while (cyc)
+            {
+                TAKEBIT(j,cyc);
+                printf(" %d-%d",edge[j].x,edge[j].y);
+            }
+            printf("\n");
+        }
     }
 #endif
 }
@@ -1763,15 +1768,15 @@ surgeproc(FILE *outfile, graph *gin, int n)
 
     for (i = 0; i < n; ++i)
     {
-	d = POPCOUNT(gin[i]);   /* deg[i] is not defined yet */
-	if      (d == 1) { ++n1; ++n12; }
+        d = POPCOUNT(gin[i]);   /* deg[i] is not defined yet */
+        if      (d == 1) { ++n1; ++n12; }
         else if (d == 2) ++n12;
         else if (d == 3) ++n34;
-	else             { ++n34; ++n4; }
+        else             { ++n34; ++n4; }
     }
 
     if (n > 1 && (n1 < min1 || n12 < min12 || n34 > max34 || n4 > max4))
-	return;
+        return;
 
     if (planar && !isplanar(gin,n)) return;    /* Try later */
 
@@ -1781,14 +1786,14 @@ surgeproc(FILE *outfile, graph *gin, int n)
 
     for (i = 0; i < n; ++i)
     {
-	w = gin[n-i-1];
-	pw = 0;
-	while (w)
-	{
-	    TAKEBIT(j,w);
-	    pw |= bit[n-j-1];
-	}
-	g[i] = pw;
+        w = gin[n-i-1];
+        pw = 0;
+        while (w)
+        {
+            TAKEBIT(j,w);
+            pw |= bit[n-j-1];
+        }
+        g[i] = pw;
     }
 
    /* Make the edge list with default parameters */
@@ -1796,108 +1801,108 @@ surgeproc(FILE *outfile, graph *gin, int n)
     ne = 0;
     for (i = 0; i < n; ++i)
     {
-	deg[i] = POPCOUNT(g[i]);
+        deg[i] = POPCOUNT(g[i]);
         w = g[i] & BITMASK(i);
         while (w)
         {
             TAKEBIT(j,w);
-	    edge[ne].x = i;
-	    edge[ne].y = j;
-	    edge[ne].xy = bit[i] | bit[j];
-	    edge[ne].maxmult = maxbond;
-	    edge[ne].allenemate1 = edge[ne].allenemate2 = -1;
-	    edgenumber[i][j] = edgenumber[j][i] = ne;
-	    ++ne;
-	}
+            edge[ne].x = i;
+            edge[ne].y = j;
+            edge[ne].xy = bit[i] | bit[j];
+            edge[ne].maxmult = maxbond;
+            edge[ne].allenemate1 = edge[ne].allenemate2 = -1;
+            edgenumber[i][j] = edgenumber[j][i] = ne;
+            ++ne;
+        }
     }
     numedges = ne;
 
     if (needcycles)
     {
-	if (ne > WORDSIZE)
-	    gt_abort(">E surge : too many edges for badlists\n");
-	findinducedcycles(g,n);
+        if (ne > WORDSIZE)
+            gt_abort(">E surge : too many edges for badlists\n");
+        findinducedcycles(g,n);
     }
 
     if (bad1)  /* no triple bonds in rings smaller than 7 */
     {
-	for (i = 0; i < cyclecount; ++i)
-	{
-	    cyc = inducedcycle[i];
-	    if (POPCOUNT(cyc) <= 7)
-	        while (cyc)
-	        {
-		    TAKEBIT(j,cyc);
-		    if (edge[j].maxmult == 2) edge[j].maxmult = 1;
-	        }
-	}
+        for (i = 0; i < cyclecount; ++i)
+        {
+            cyc = inducedcycle[i];
+            if (POPCOUNT(cyc) <= 7)
+                while (cyc)
+                {
+                    TAKEBIT(j,cyc);
+                    if (edge[j].maxmult == 2) edge[j].maxmult = 1;
+                }
+        }
     }
 
     if (bad2)  /* Bredt's rule for one common bond */
     {
-	for (i = 0; i < cyclecount-1; ++i)
-	{
-	    isize = POPCOUNT(inducedcycle[i]);
-	    if (isize > 6) continue;
-	    for (j = i+1; j < cyclecount; ++j)
-	    {
-	        jsize = POPCOUNT(inducedcycle[j]);
-	        if (jsize > 6) continue;
+        for (i = 0; i < cyclecount-1; ++i)
+        {
+            isize = POPCOUNT(inducedcycle[i]);
+            if (isize > 6) continue;
+            for (j = i+1; j < cyclecount; ++j)
+            {
+                jsize = POPCOUNT(inducedcycle[j]);
+                if (jsize > 6) continue;
 
-	        w = inducedcycle[i] & inducedcycle[j];
-	        if (POPCOUNT(w) != 1) continue;
+                w = inducedcycle[i] & inducedcycle[j];
+                if (POPCOUNT(w) != 1) continue;
 
-		if (isize*jsize <= 15)
-		    edge[FIRSTBITNZ(w)].maxmult = 0;
+                if (isize*jsize <= 15)
+                    edge[FIRSTBITNZ(w)].maxmult = 0;
 
-		if (isize+jsize <= 9)
-		{
-		    wxy = edge[FIRSTBITNZ(w)].xy;
-		    ww = (inducedcycle[i] | inducedcycle[j]) & ~w;
-		    while (ww)
-		    {
-			TAKEBIT(k,ww);
-			if ((edge[k].xy & wxy)) edge[k].maxmult = 0;
-		    }
-		}
-	    }	
-	}
+                if (isize+jsize <= 9)
+                {
+                    wxy = edge[FIRSTBITNZ(w)].xy;
+                    ww = (inducedcycle[i] | inducedcycle[j]) & ~w;
+                    while (ww)
+                    {
+                        TAKEBIT(k,ww);
+                        if ((edge[k].xy & wxy)) edge[k].maxmult = 0;
+                    }
+                }
+            }   
+        }
     }
 
     if (bad3)  /* Bredt's rule for two common bonds */
     {
-	for (i = 0; i < cyclecount-1; ++i)
-	{
-	    isize = POPCOUNT(inducedcycle[i]);
-	    if (isize == 3 || isize > 6) continue;
+        for (i = 0; i < cyclecount-1; ++i)
+        {
+            isize = POPCOUNT(inducedcycle[i]);
+            if (isize == 3 || isize > 6) continue;
 
-	    for (j = i+1; j < cyclecount; ++j)
-	    {
-		jsize = POPCOUNT(inducedcycle[j]);
-	        if (jsize == 3 || jsize > 6 || isize+jsize == 12) continue;
+            for (j = i+1; j < cyclecount; ++j)
+            {
+                jsize = POPCOUNT(inducedcycle[j]);
+                if (jsize == 3 || jsize > 6 || isize+jsize == 12) continue;
 
-	        w = inducedcycle[i] & inducedcycle[j];
-	        if (POPCOUNT(w) != 2) continue;
+                w = inducedcycle[i] & inducedcycle[j];
+                if (POPCOUNT(w) != 2) continue;
 
-		ww = w;
-		TAKEBIT(k,ww);
-		edge[k].maxmult = 0;
-		edge[FIRSTBITNZ(ww)].maxmult = 0;
-		wxy = edge[k].xy ^ edge[FIRSTBITNZ(ww)].xy;
-		
-		ww = (inducedcycle[i] | inducedcycle[j]) & ~w;
-		while (ww)
-		{
-		    TAKEBIT(k,ww);
-		    if ((edge[k].xy & wxy)) edge[k].maxmult = 0;
-		}
-	    }	
-	}
+                ww = w;
+                TAKEBIT(k,ww);
+                edge[k].maxmult = 0;
+                edge[FIRSTBITNZ(ww)].maxmult = 0;
+                wxy = edge[k].xy ^ edge[FIRSTBITNZ(ww)].xy;
+                
+                ww = (inducedcycle[i] | inducedcycle[j]) & ~w;
+                while (ww)
+                {
+                    TAKEBIT(k,ww);
+                    if ((edge[k].xy & wxy)) edge[k].maxmult = 0;
+                }
+            }   
+        }
     }
 
     if (bad4) /* Bredt's rule for two hexagons with 3 bonds in common */
     {
-	for (i = 0; i < cyclecount-1; ++i)
+        for (i = 0; i < cyclecount-1; ++i)
         {
             isize = POPCOUNT(inducedcycle[i]);
             if (isize != 6) continue;
@@ -1910,75 +1915,75 @@ surgeproc(FILE *outfile, graph *gin, int n)
                 w = inducedcycle[i] & inducedcycle[j];
                 if (POPCOUNT(w) != 3) continue;
 
-		ww = inducedcycle[i] | inducedcycle[j];
+                ww = inducedcycle[i] | inducedcycle[j];
 
-		TAKEBIT(e1,w);
-		TAKEBIT(e2,w);
-		e3 = FIRSTBITNZ(w);
+                TAKEBIT(e1,w);
+                TAKEBIT(e2,w);
+                e3 = FIRSTBITNZ(w);
 
-		wxy = edge[e1].xy ^ edge[e2].xy ^ edge[e3].xy;
-		while (ww)
-		{
-		    TAKEBIT(k,ww);
-		    if ((edge[k].xy & wxy)) edge[k].maxmult = 0;
-		}
-	    }
-	}
+                wxy = edge[e1].xy ^ edge[e2].xy ^ edge[e3].xy;
+                while (ww)
+                {
+                    TAKEBIT(k,ww);
+                    if ((edge[k].xy & wxy)) edge[k].maxmult = 0;
+                }
+            }
+        }
     }
 
     if (bad5)  /* No A=A=A, whether in ring or not */
     {
-	for (i = 0; i < n; ++i)
-	if (deg[i] == 2)
-	{
-	    x = FIRSTBITNZ(g[i]);
-	    y = FIRSTBITNZ(g[i]&~bit[x]);
-	    e1 = edgenumber[i][x];
-	    e2 = edgenumber[i][y];
-	    if (edge[e2].allenemate1 < 0)
-	    {
-	         if (e1 < e2) edge[e2].allenemate1 = e1;
-	         else         edge[e1].allenemate1 = e2;
-	    }
-	    else
-	    {
-	         if (e1 < e2) edge[e2].allenemate2 = e1;
-	         else         edge[e1].allenemate2 = e2;
-	    }
-	}
+        for (i = 0; i < n; ++i)
+        if (deg[i] == 2)
+        {
+            x = FIRSTBITNZ(g[i]);
+            y = FIRSTBITNZ(g[i]&~bit[x]);
+            e1 = edgenumber[i][x];
+            e2 = edgenumber[i][y];
+            if (edge[e2].allenemate1 < 0)
+            {
+                 if (e1 < e2) edge[e2].allenemate1 = e1;
+                 else         edge[e1].allenemate1 = e2;
+            }
+            else
+            {
+                 if (e1 < e2) edge[e2].allenemate2 = e1;
+                 else         edge[e1].allenemate2 = e2;
+            }
+        }
     }
 
     if (bad6)  /* No A=A=A in rings up to length 8 */
     {                           
-	cycle8 = 0; 
-	for (i = 0; i < cyclecount; ++i)
-	    if (POPCOUNT(inducedcycle[i]) <= 8) cycle8 |= inducedcycle[i];
+        cycle8 = 0; 
+        for (i = 0; i < cyclecount; ++i)
+            if (POPCOUNT(inducedcycle[i]) <= 8) cycle8 |= inducedcycle[i];
 
-	for (i = 0; i < n; ++i)
-	if (deg[i] == 2)
-	{
-	    x = FIRSTBITNZ(g[i]);
-	    y = FIRSTBITNZ(g[i]&~bit[x]);
-	    e1 = edgenumber[i][x];
-	    if (!(bit[e1] & cycle8)) continue;
-	    e2 = edgenumber[i][y];
-	    if (edge[e2].allenemate1 < 0)
-	    {
-	         if (e1 < e2) edge[e2].allenemate1 = e1;
-	         else         edge[e1].allenemate1 = e2;
-	    }
-	    else 
-	    {
-	         if (e1 < e2) edge[e2].allenemate2 = e1;
-	         else         edge[e1].allenemate2 = e2;
-	    }
-	}
+        for (i = 0; i < n; ++i)
+        if (deg[i] == 2)
+        {
+            x = FIRSTBITNZ(g[i]);
+            y = FIRSTBITNZ(g[i]&~bit[x]);
+            e1 = edgenumber[i][x];
+            if (!(bit[e1] & cycle8)) continue;
+            e2 = edgenumber[i][y];
+            if (edge[e2].allenemate1 < 0)
+            {
+                 if (e1 < e2) edge[e2].allenemate1 = e1;
+                 else         edge[e1].allenemate1 = e2;
+            }
+            else 
+            {
+                 if (e1 < e2) edge[e2].allenemate2 = e1;
+                 else         edge[e1].allenemate2 = e2;
+            }
+        }
     }
 
     if (outlevel == 1)
     {
-	if (!uswitch) writeg6(outfile,g,1,n);
-	return;
+        if (!uswitch) writeg6(outfile,g,1,n);
+        return;
     }
 
    /* Make a SMILES skeleton structure for later use */
@@ -2014,24 +2019,24 @@ decode_formula(char *formula, int *nv,
 
     for (s1 = formula; *s1 != '\0'; s1 = s2)
     {
-	if (!isupper(*s1)) gt_abort(">E surge : unknown element name\n");
+        if (!isupper(*s1)) gt_abort(">E surge : unknown element name\n");
         for (s2 = s1+1; islower(*s2); ++s2) {}
-	for (i = 0; i < numelements; ++i)
+        for (i = 0; i < numelements; ++i)
         {
-	    for (j = 0; element[i].inputname[j] != '\0'
+            for (j = 0; element[i].inputname[j] != '\0'
                   && s1+j != s2 && element[i].inputname[j] == s1[j]; ++j) {}
-	    if (element[i].inputname[j] == '\0' && s1+j == s2) break;
-	}
-	if (i == numelements) gt_abort(">E surge : unknown element name\n");
-	s1 = s2;
-	if (!isdigit(*s2))
-	    ++count[i];
-	else
-	{
-	    mult = *s2 - '0';
-	    for (s2 = s1+1; isdigit(*s2); ++s2) mult = 10*mult+(*s2-'0');
-	    count[i] += mult;
-	}
+            if (element[i].inputname[j] == '\0' && s1+j == s2) break;
+        }
+        if (i == numelements) gt_abort(">E surge : unknown element name\n");
+        s1 = s2;
+        if (!isdigit(*s2))
+            ++count[i];
+        else
+        {
+            mult = *s2 - '0';
+            for (s2 = s1+1; isdigit(*s2); ++s2) mult = 10*mult+(*s2-'0');
+            count[i] += mult;
+        }
     }
 
     /* Next we collect elements actually used into elementtype[0..numtypes-1]
@@ -2043,15 +2048,15 @@ decode_formula(char *formula, int *nv,
         cnt = count[i];
         if (cnt > 0)
         {
-	    if (ISHYDROGEN(i))
+            if (ISHYDROGEN(i))
                 hydrogens = cnt;
-	    else
-	    {
-		elementtype[numtypes] = i;
-		elementcount[numtypes] = cnt;
-		++numtypes;
-	    }
-	}
+            else
+            {
+                elementtype[numtypes] = i;
+                elementcount[numtypes] = cnt;
+                ++numtypes;
+            }
+        }
     }
 
     /* Next we adjust *maxd and *maxc, as well as the maxcoord
@@ -2059,14 +2064,14 @@ decode_formula(char *formula, int *nv,
 
     maxvcoord = 0;
     for (i = 0; i < numtypes; ++i)
-	if (element[elementtype[i]].maxcoord > maxvcoord)
-	    maxvcoord = element[elementtype[i]].maxcoord;
+        if (element[elementtype[i]].maxcoord > maxvcoord)
+            maxvcoord = element[elementtype[i]].maxcoord;
     if (maxvcoord < *maxc)
-	*maxc = maxvcoord;
+        *maxc = maxvcoord;
     else if (maxvcoord > *maxc)
-	for (i = 0; i < numtypes; ++i)
-	    if (element[elementtype[i]].maxcoord > *maxc)
-		element[elementtype[i]].maxcoord = *maxc;
+        for (i = 0; i < numtypes; ++i)
+            if (element[elementtype[i]].maxcoord > *maxc)
+                element[elementtype[i]].maxcoord = *maxc;
     if (*maxd > *maxc) *maxd = *maxc;
 
     /* Next we find some bounds on the number of vertices
@@ -2075,15 +2080,15 @@ decode_formula(char *formula, int *nv,
     min1 = min12 = max34 = max4 = 0;
     for (i = 0; i < numelements; ++i)
     {
-	if (!ISHYDROGEN(i))
-	{
-	    cnt = count[i];
-	    val = element[i].maxcoord;
-	    if (val <= 1) min1 += cnt;   // Check logic
-	    if (val <= 2) min12 += cnt;
-	    if (val >= 3) max34 += cnt;
-	    if (val >= 4) max4 += cnt;
-		// Could add max5, could use both bounds everywhere
+        if (!ISHYDROGEN(i))
+        {
+            cnt = count[i];
+            val = element[i].maxcoord;
+            if (val <= 1) min1 += cnt;   // Check logic
+            if (val <= 2) min12 += cnt;
+            if (val >= 3) max34 += cnt;
+            if (val >= 4) max4 += cnt;
+                // Could add max5, could use both bounds everywhere
         }
     }
 
@@ -2091,15 +2096,15 @@ decode_formula(char *formula, int *nv,
 
     for (i = 1; i < numtypes; ++i)  /* really 1 */
     {
-	xi = elementtype[i];
-	yi = elementcount[i];
-	for (j = i; element[elementtype[j-1]].maxcoord < element[xi].maxcoord; )
+        xi = elementtype[i];
+        yi = elementcount[i];
+        for (j = i; element[elementtype[j-1]].maxcoord < element[xi].maxcoord; )
         {
-	    elementtype[j] = elementtype[j-1];
-	    elementcount[j] = elementcount[j-1];
-	    if (--j < 1) break;
-	}
-	elementtype[j] = xi;
+            elementtype[j] = elementtype[j-1];
+            elementcount[j] = elementcount[j-1];
+            if (--j < 1) break;
+        }
+        elementtype[j] = xi;
         elementcount[j] = yi;
     }
 
@@ -2108,8 +2113,8 @@ decode_formula(char *formula, int *nv,
     p = canonform;
     for (i = 0; i < numtypes; ++i)
     {
-	PUTSTR(element[elementtype[i]].inputname);
-	if (elementcount[i] > 1) PUTINT(elementcount[i]);
+        PUTSTR(element[elementtype[i]].inputname);
+        if (elementcount[i] > 1) PUTINT(elementcount[i]);
     }
     if (hydrogens > 0) PUTSTR("H");
     if (hydrogens > 1) PUTINT(hydrogens);
@@ -2121,12 +2126,12 @@ decode_formula(char *formula, int *nv,
     totval = hydrogens;
     for (i = 0; i < numtypes; ++i)
     {
-	j = elementtype[i];
-	cnt = elementcount[i];
-	*nv += cnt;
-	totval += cnt * element[j].valence;
-	if (element[j].valence > element[j].maxcoord)
-	    forced += element[j].valence - element[j].maxcoord;
+        j = elementtype[i];
+        cnt = elementcount[i];
+        *nv += cnt;
+        totval += cnt * element[j].valence;
+        if (element[j].valence > element[j].maxcoord)
+            forced += element[j].valence - element[j].maxcoord;
     }
     forced = (forced+1) / 2;
 
@@ -2156,11 +2161,11 @@ decode_formula(char *formula, int *nv,
 
     for (d = 1; d <= *maxd; ++d)
     {
-	for (i = 0; i < numtypes; ++i)
-	{
-	    val = element[elementtype[i]].maxcoord;
-	    if (d <= val) maxtype[d] = i;
-	}
+        for (i = 0; i < numtypes; ++i)
+        {
+            val = element[elementtype[i]].maxcoord;
+            if (d <= val) maxtype[d] = i;
+        }
     }
 }
 
@@ -2181,9 +2186,9 @@ start_geng(int n, int maxd, int maxc,
     mind = 1;
     if (hydrogens == 0)
     {
-	for (i = 0; i < numtypes; ++i)
-	    if (element[elementtype[i]].valence < 4) break;
-	if (i == numtypes) mind = 2;
+        for (i = 0; i < numtypes; ++i)
+            if (element[elementtype[i]].valence < 4) break;
+        if (i == numtypes) mind = 2;
     }
 
     if (n == 1) mind = 0;
@@ -2198,38 +2203,38 @@ start_geng(int n, int maxd, int maxc,
 
     if (tswitch && max3rings == 0)
     {
-	geng_argv[geng_argc++] = "-t";
-	tswitch = FALSE;
+        geng_argv[geng_argc++] = "-t";
+        tswitch = FALSE;
     }
 
     if (fswitch && max4rings == 0)
     {
-	geng_argv[geng_argc++] = "-f";
-	fswitch = FALSE;
+        geng_argv[geng_argc++] = "-f";
+        fswitch = FALSE;
     }
 
     if (bipartite) geng_argv[geng_argc++] = "-b";
 
     if (extra1)
     {
-	snprintf(gengargs,78,"-%s",extra1);
-	geng_argv[geng_argc++] = gengargs;
+        snprintf(gengargs,78,"-%s",extra1);
+        geng_argv[geng_argc++] = gengargs;
     }
     geng_argv[geng_argc++] = argb;
     geng_argv[geng_argc++] = edgecount;
     if (mod > 1)
     {
-	sprintf(resmod,"%ld/%ld",res,mod);
-	geng_argv[geng_argc++] = resmod;
+        sprintf(resmod,"%ld/%ld",res,mod);
+        geng_argv[geng_argc++] = resmod;
     }
     geng_argv[geng_argc] = NULL;
 
     if (verbose)
     {
-	fprintf(stderr,">geng");
-	for (i = 1; geng_argv[i] != NULL; ++i)
-	    fprintf(stderr," %s",geng_argv[i]);
-	fprintf(stderr,"\n");
+        fprintf(stderr,">geng");
+        for (i = 1; geng_argv[i] != NULL; ++i)
+            fprintf(stderr," %s",geng_argv[i]);
+        fprintf(stderr,"\n");
     }
 
     geng_main(geng_argc,geng_argv);
@@ -2256,77 +2261,69 @@ processEswitch(char **ps, char *id)
     {
         switch (state) 
         {
-	   case 0:
-		if (!isupper(*s))
-		{
-		    state = 6;
-		    break;
-		}
-		inputname[0] = *s++;
-		if (islower(*s))
-		{
-		    inputname[1] = *s++;
-		    inputname[2] = '\0';
-		}
-		else
-		    inputname[1] = '\0';
-		state = 1;
-		break;
-	   case 1:
-		if (*s == ',')
-		{
-		    ++s;
-		    state = 2;
-		}
-		else
-		{
-		    name[0] = inputname[0];
-		    name[1] = inputname[1];
-		    name[2] = inputname[2];
-		    state = 3;
-		}
-		break;
-	    case 2:
-		if (!isupper(*s))
-		{
-		    state = 6;
-		    break;
-		}
-		name[0] = *s++;
-		if (islower(*s))
-		{
-		    name[1] = *s++;
-		    name[2] = '\0';
-		}
-		else
-		    name[1] = '\0';
-		state = 3;
-		break;
-	    case 3:
-		if (!isdigit(*s))
-		{
-		    state = 7;
-		    break;
-		}
-		valence = *s++ - '0';
-		if (!isdigit(*s))
-		    maxcoord = valence;
-		else
-		    maxcoord = *s++ - '0';
-		state = 5;
-		break;
-	}
+           case 0:
+                if (!isupper(*s))
+                {
+                    state = 6;
+                    break;
+                }
+                inputname[0] = *s++;
+                if (islower(*s))
+                {
+                    inputname[1] = *s++;
+                    inputname[2] = '\0';
+                }
+                else
+                    inputname[1] = '\0';
+                state = 1;
+                break;
+           case 1:
+                if (isupper(*s))
+                    state = 2;
+                else
+                {
+                    name[0] = inputname[0];
+                    name[1] = inputname[1];
+                    name[2] = inputname[2];
+                    state = 3;
+                }
+                break;
+            case 2:
+                name[0] = *s++;
+                if (islower(*s))
+                {
+                    name[1] = *s++;
+                    name[2] = '\0';
+                }
+                else
+                    name[1] = '\0';
+                state = 3;
+                break;
+            case 3:
+                if (!isdigit(*s))
+                {
+                    state = 7;
+                    break;
+                }
+                valence = *s++ - '0';
+                if (!isdigit(*s))
+                    maxcoord = valence;
+                else
+                    maxcoord = *s++ - '0';
+                state = 5;
+                break;
+        }
     }
 
     if (state == 6)
     {
-	fprintf(stderr,">E %s : bad element name\n",id);
-	exit(1);
+        fprintf(stderr,">E %s : bad element name\n",id);
+        exit(1);
     }
     if (state == 7)
     {
-	fprintf(stderr,">E %s : bad valence or maxcoord\n",id);
-	exit(1);
+        fprintf(stderr,">E %s : bad valence or maxcoord\n",id);
+        exit(1);
     }
 
     *ps = s;
@@ -2358,9 +2355,9 @@ main(int argc, char *argv[])
 
     maxindex = 0;
     for (i = 0; i < MAXELEMENTS; ++i)
-	if (element[i].inputname == NULL) break;
-	else if (element[i].index < maxindex && !ISHYDROGEN(i))
-	    maxindex = element[i].index;
+        if (element[i].inputname == NULL) break;
+        else if (element[i].index < maxindex && !ISHYDROGEN(i))
+            maxindex = element[i].index;
     numelements = i;
 
 #ifdef SURGEPLUGIN_INIT
@@ -2379,71 +2376,71 @@ main(int argc, char *argv[])
 
     for (j = 1; !badargs && j < argc; ++j)
     {
-	arg = argv[j];
-	if (arg[0] == '-' && arg[1] != '\0')
-	{
-	    ++arg;
-	    while (*arg != '\0')
-	    {
-		sw = *arg++;
-		if (sw == 'G')
-		{
-		    if (Gswitch)
-			gt_abort(">E surge: -G is only allowed once\n");
-		    Gswitch = TRUE;
-		    extra1 = arg;
-		    break;
-		}
-		else if (sw == 'o')
-		{
-		    if (oswitch)
-			gt_abort(">E surge : -o is only allowed once\n");
-		    oswitch = TRUE;
-		    outfilename = arg;
-		    break;
-		}
-		else SWRANGE('m',"/",mswitch,res,mod,"surge -m")
+        arg = argv[j];
+        if (arg[0] == '-' && arg[1] != '\0')
+        {
+            ++arg;
+            while (*arg != '\0')
+            {
+                sw = *arg++;
+                if (sw == 'G')
+                {
+                    if (Gswitch)
+                        gt_abort(">E surge: -G is only allowed once\n");
+                    Gswitch = TRUE;
+                    extra1 = arg;
+                    break;
+                }
+                else if (sw == 'o')
+                {
+                    if (oswitch)
+                        gt_abort(">E surge : -o is only allowed once\n");
+                    oswitch = TRUE;
+                    outfilename = arg;
+                    break;
+                }
+                else SWRANGE('m',"/",mswitch,res,mod,"surge -m")
                 else SWINT('O',Oswitch,outlevel,"surge -O")
                 else SWINT('c',cswitch,maxc,"surge -c")
                 else SWINT('d',Dswitch,maxd,"surge -d")
-		else SWBOOLEAN('u',uswitch)
-		else SWBOOLEAN('v',verbose)
-		else SWBOOLEAN('T',notriples)
+                else SWBOOLEAN('u',uswitch)
+                else SWBOOLEAN('v',verbose)
+                else SWBOOLEAN('T',notriples)
                 else SWBOOLEAN('S',smiles)
                 else SWBOOLEAN('z',gzip)
                 else SWBOOLEAN('A',alphabetic)
                 else SWBOOLEAN('b',bipartite)
                 else SWBOOLEAN('P',planar)
                 else SWBOOLEAN('x',xswitch)
-		else SWSEQUENCEMIN('B',",",Bswitch,badlist,1,BADLISTS,badlen,"surge -B")
+                else SWSEQUENCEMIN('B',",",Bswitch,badlist,1,BADLISTS,badlen,"surge -B")
                 else SWRANGE('e',":-",eswitch,eminval,emaxval,"surge -e")
                 else SWRANGE('t',":-",tswitch,min3rings,max3rings,"surge -t")
                 else SWRANGE('f',":-",fswitch,min4rings,max4rings,"surge -f")
                 else SWRANGE('p',":-",pswitch,min5rings,max5rings,"surge -p")
-		else SWELEMENT('E',"surge -E")
+                else SWELEMENT('E',"surge -E")
 #ifdef SURGEPLUGIN_SWITCHES
-		else SURGEPLUGIN_SWITCHES
+                else SURGEPLUGIN_SWITCHES
 #endif
                 else badargs = TRUE;
 
                 if (Bswitch)
                 {
-	            for (i = 0; i < badlen; ++i)
-	            {
-	                if (badlist[i] < 1 || badlist[i] > BADLISTS)
-		        gt_abort(">E surge : invalid bad list number\n");
-	                if      (badlist[i] == 1) bad1 = TRUE;
-	                else if (badlist[i] == 2) bad2 = TRUE;
-	                else if (badlist[i] == 3) bad3 = TRUE;
-	                else if (badlist[i] == 4) bad4 = TRUE;
-	                else if (badlist[i] == 5) bad5 = TRUE;
-	                else if (badlist[i] == 6) bad6 = TRUE;
-	                else if (badlist[i] == 7) bad7 = TRUE;
-	                else if (badlist[i] == 8) bad8 = TRUE;
-	                else if (badlist[i] == 9) bad9 = TRUE;
+                    for (i = 0; i < badlen; ++i)
+                    {
+                        if (badlist[i] < 1 || badlist[i] > BADLISTS)
+                        gt_abort(">E surge : invalid bad list number\n");
+                        if      (badlist[i] == 1) bad1 = TRUE;
+                        else if (badlist[i] == 2) bad2 = TRUE;
+                        else if (badlist[i] == 3) bad3 = TRUE;
+                        else if (badlist[i] == 4) bad4 = TRUE;
+                        else if (badlist[i] == 5) bad5 = TRUE;
+                        else if (badlist[i] == 6) bad6 = TRUE;
+                        else if (badlist[i] == 7) bad7 = TRUE;
+                        else if (badlist[i] == 8) bad8 = TRUE;
+                        else if (badlist[i] == 9) bad9 = TRUE;
                           /* Don't forget initialization if you add more */
-	            }
-		    Bswitch = FALSE;
+                    }
+                    Bswitch = FALSE;
                 }
             }
         }
@@ -2476,7 +2473,7 @@ main(int argc, char *argv[])
     if (uswitch) gzip = oswitch = alphabetic = FALSE;
 
     if (alphabetic && smiles)
-	gt_abort(">E surge : -A and -S are incompatible\n");
+        gt_abort(">E surge : -A and -S are incompatible\n");
 
     if (!oswitch || (oswitch && strcmp(outfilename,"-") == 0))
         outfilename = "stdout";
@@ -2484,7 +2481,7 @@ main(int argc, char *argv[])
     if (bad5) bad6 = FALSE;        /* bad6 is a subset of bad5 */
     if (notriples) bad1 = FALSE;
     if (tswitch && fswitch && max3rings+max4rings <= 1)
-	bad9 = FALSE;
+        bad9 = FALSE;
 
     needcycles = (bad1 || bad2 || bad3 || bad4 || bad6); 
 
@@ -2497,24 +2494,24 @@ main(int argc, char *argv[])
     if (gzip)
     {
 #ifdef ZLIB
-	if (strcmp(outfilename,"stdout") == 0)
-	    gzoutfile = gzdopen(fileno(stdout),"wb");
-	else
-	    gzoutfile = gzopen(outfilename,"wb");
-	if (!gzoutfile)
-	    gt_abort(">E surge : unable to open compressed stream\n");
-	gzbuffer(gzoutfile,1<<16);  /* Remove this line if gzbuffer()
+        if (strcmp(outfilename,"stdout") == 0)
+            gzoutfile = gzdopen(fileno(stdout),"wb");
+        else
+            gzoutfile = gzopen(outfilename,"wb");
+        if (!gzoutfile)
+            gt_abort(">E surge : unable to open compressed stream\n");
+        gzbuffer(gzoutfile,1<<16);  /* Remove this line if gzbuffer()
            is not found; it means you have a old version of zlib. */
 #endif
     }
     else
     {
-	if (strcmp(outfilename,"stdout") == 0)
-	    outfile = stdout;
-	else
-	    outfile = fopen(outfilename,"w");
-	if (!outfile)
-	    gt_abort(">E surge : can't open output file\n");
+        if (strcmp(outfilename,"stdout") == 0)
+            outfile = stdout;
+        else
+            outfile = fopen(outfilename,"w");
+        if (!outfile)
+            gt_abort(">E surge : can't open output file\n");
     }
 
     maxbond = (notriples ? 1 : 2);
@@ -2523,13 +2520,13 @@ main(int argc, char *argv[])
 
     if (mswitch)
     {
-	if (res < 0 || res >= mod)
-	    gt_abort(">E surge : -mres/mod needs 0 <= res < mod\n");
+        if (res < 0 || res >= mod)
+            gt_abort(">E surge : -mres/mod needs 0 <= res < mod\n");
     }
     else
     {
-	res = 0;
-	mod = 1;
+        res = 0;
+        mod = 1;
     }
 
     if (badargs || argnum != 1)
@@ -2541,13 +2538,13 @@ main(int argc, char *argv[])
 
     if (eswitch)
     {
-	mine = (int)eminval;
-	maxe = (int)emaxval;
+        mine = (int)eminval;
+        maxe = (int)emaxval;
     }
     else
     {
-	mine = 0;
-	maxe = NOLIMIT;
+        mine = 0;
+        maxe = NOLIMIT;
     }
 
     decode_formula(formula,&nv,&mine,&maxe,&maxd,&maxc);
@@ -2556,8 +2553,8 @@ main(int argc, char *argv[])
     start_geng(nv,maxd,maxc,mine,maxe,extra1,res,mod);
 #ifdef ZLIB
     if (gzip)
-	if (gzclose(gzoutfile) != Z_OK)
-	    gt_abort(">E surge : error on closing compressed stream\n");
+        if (gzclose(gzoutfile) != Z_OK)
+            gt_abort(">E surge : error on closing compressed stream\n");
 #endif
     t2 = CPUTIME;
 
@@ -2566,13 +2563,13 @@ main(int argc, char *argv[])
 
     if (verbose)
     {
-	fprintf(stderr,">G geng made %lld graphs, %lld accepted\n",
+        fprintf(stderr,">G geng made %lld graphs, %lld accepted\n",
                        gengout,genggood);
-	if (outlevel > 1)
-	    fprintf(stderr,">V vcolg %lld nontrivial groups, max size"
+        if (outlevel > 1)
+            fprintf(stderr,">V vcolg %lld nontrivial groups, max size"
               " %ld, made %lld graphs\n",vcolgnontriv,maxvgroup,vcolgout);
         if (outlevel > 2)
-	    fprintf(stderr,">M multig %lld nontrivial groups, max size"
+            fprintf(stderr,">M multig %lld nontrivial groups, max size"
               " %ld, made %lld graphs\n",multignontriv,maxegroup,multigout);
     }
 
@@ -2583,7 +2580,7 @@ main(int argc, char *argv[])
 #endif
 
     fprintf(stderr,">Z %s %llu -> %llu -> %llu in %.2f sec\n",
-	(uswitch ? "generated" : "wrote"),
+        (uswitch ? "generated" : "wrote"),
         gengout,vcolgout,multigout,t2-t1);
 
     return 0;
