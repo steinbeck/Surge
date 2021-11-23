@@ -1,4 +1,4 @@
-<img src="doc/logo2.png" alt="drawing" width="100" align = "right"/>
+<img src="resources/logo2.png" alt="drawing" width="100" align = "right"/>
 
 # Surge: A Chemical Graph Generator based on Canonical Augmentation
 ## About
@@ -13,7 +13,7 @@ For large sets of structures, the -z option for compressing the output in gzip f
 `surge -help` will show all options:
 
 <p align="center">
-  <img src="doc/logo.png" alt="drawing" width="400"
+  <img src="resources/logo.png" alt="drawing" width="400"
 </p>
 
 ```
