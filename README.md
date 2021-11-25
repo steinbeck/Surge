@@ -1,6 +1,6 @@
 <img src="resources/logo2.png" alt="drawing" width="100" align = "right"/>
 
-# Surge: A Chemical Graph Generator based on Canonical Generation Path
+# Surge: A Fast Open-Source Chemical Graph Generator
 ## About
 Surge is a chemical structure generator based on the Nauty package and thereby on the principles of canonical augmentation.
 More precisely, Surge generates all non-isomorphic constitutional isomers of a given molecular formula.
